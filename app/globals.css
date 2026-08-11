@@ -1,0 +1,571 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/animations.css";
+
+/* =============================================================================
+   THE ANIMATED GROUND HUE
+   =============================================================================
+   A custom property cannot be interpolated unless it is REGISTERED — an unregistered
+   `--x` is just a string to the animation engine, so it would jump between keyframes
+   instead of sweeping. `@property` with `syntax: "<number>"` is what makes the hue
+   a real animatable value.
+
+   Only the HUE moves. Lightness and chroma are pinned, which is what makes this
+   safe: rotating hue at fixed OKLCH lightness moves WCAG contrast by 0.01 across
+   the entire sweep (measured 4.80 → 4.79 for ink-secondary over the worst ambient
+   point). A lightness animation would move it by far more and would need its own
+   budget; this needs none.
+
+   228° → 282° and back: blue through periwinkle. It never reaches green and never
+   reaches warm, so the ground can never argue with the status palette.
+
+   If a browser lacks @property support the registration is ignored, the hue holds
+   at its initial value, and the page renders exactly as it does today — the
+   degradation is "no animation", not "no background".
+   ============================================================================= */
+@property --canvas-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 255;
+}
+
+/* =============================================================================
+   model.store — Global base
+   ============================================================================= */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--color-canvas);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--color-ink);
+    background-color: var(--color-canvas);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* A STATIC SAMPLE of the ambient layer, for docs demos that need a
+     representative backdrop inside a fixed-size box.
+
+     The real thing is the `AmbientBackground` component — four independently
+     drifting blurred blobs plus a readability scrim, which cannot be expressed as
+     one element's background. This is a frozen approximation of that palette, kept
+     in sync by hand. It is NOT used on any product route; if you are reaching for
+     it outside /docs, you want the component. */
+  .ambient-ground {
+    background-color: var(--color-canvas);
+    background-image:
+      /* the scrim, on top */
+      radial-gradient(ellipse 125% 92% at 50% 44%, var(--color-scrim-strong) 0%, var(--color-scrim-soft) 84%),
+      /* the instrument grid */
+      linear-gradient(oklch(42% 0.115 224 / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(42% 0.115 224 / 0.07) 1px, transparent 1px),
+      /* the lava, beneath */
+      radial-gradient(circle at 6% 10%, oklch(50% 0.16 212 / 0.22) 0%, transparent 55%),
+      radial-gradient(circle at 94% 18%, oklch(45% 0.15 232 / 0.22) 0%, transparent 55%),
+      radial-gradient(circle at 40% 96%, oklch(62% 0.16 248 / 0.22) 0%, transparent 55%),
+      radial-gradient(circle at 86% 92%, oklch(72% 0.14 218 / 0.2) 0%, transparent 50%);
+    background-size:
+      auto, 56px 56px, 56px 56px, auto, auto, auto, auto;
+    background-repeat: no-repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  }
+
+  /* ===========================================================================
+     THE THREE HEADING TIERS
+
+     A bare <h1>, <h2> or <h3> is already correct. That is the entire point of
+     this block, and it is new: sizes and heading tags used to be completely
+     decoupled — the --text-* scale lived in tokens.css while h1–h6 set only
+     weight and tracking — so every call site had to pick a size, and picked
+     differently. `<h2 class="text-md">` and `<h2 class="text-xl">` both shipped,
+     in the same product, four sizes deep. Sizing the tags is what closes that.
+
+       h1  a page title      names a PLACE you navigated to   serif 40
+       h2  a section heading names a REGION of that place     serif 26
+       h3  a card/block title names a THING inside it         sans  16/600
+
+     THE RULE WORTH REMEMBERING: the serif/sans boundary and the canvas/surface
+     boundary are the same boundary. Above it you are naming a place, on the
+     canvas, in the serif. Below it you are naming a thing, inside a surface, in
+     the sans. That is why the split lands between h2 and h3 rather than anywhere
+     else, and it is why CardTitle renders h3 by default.
+
+     WHY THE SERIF STOPS AT 22px. Instrument Serif ships exactly one weight — 400.
+     It cannot gain contrast by getting bolder, only by getting bigger, so at 15px
+     in a dense operator tool a 400-weight serif is texture rather than hierarchy. The tier below
+     it therefore has to change FACE, not merely shrink. This is a constraint of
+     the face, not a taste call; swap the face and this boundary moves.
+
+     Utilities still win — these are @layer base and Tailwind orders `utilities`
+     after it — so a call site that genuinely needs a different size still says so
+     out loud. It just no longer has to say it to get the default right.
+     =========================================================================== */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-weight: var(--font-weight-heading);
+    letter-spacing: var(--tracking-title);
+    text-wrap: balance;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    /* 400, because 400 is all there is. This rule asked for 600 until now, which
+       made the browser SYNTHESISE the bold by smearing the 400 outlines — and a
+       thin-stroked serif is exactly the shape that ruins. It was shipping on
+       every page title in the product. */
+    font-weight: 400;
+    /* The guard, not the belt. The line above fixes the default; this makes a
+       stray `font-semibold` at a call site a no-op instead of a smear. Base UI
+       renders Dialog.Title and Popover.Title as <h2>, so the hole is real and not
+       hypothetical. Chrome 97+, Safari 16.4+, Firefox 111+; older engines still
+       get the correct 400 above. */
+    font-synthesis-weight: none;
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl--line-height);
+    letter-spacing: var(--tracking-display);
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    letter-spacing: var(--tracking-heading);
+  }
+
+  /* Tier 3 is the same 16px as the body it sits above. The separation is weight
+     and ink, not size: 16/600 at `ink` over 14/400 at `ink-tertiary` reads louder
+     than a one-step size bump ever did, and costs no vertical space. */
+  h3 {
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  svg {
+    display: block;
+    flex: none;
+  }
+
+  /* ONE RULE, EVERY ICON. lucide renders `stroke-width` as a presentation
+     ATTRIBUTE (it is in its defaultAttributes), and any CSS declaration beats a
+     presentation attribute — so this restyles all ~250 icon instances without a
+     wrapper component, a provider, or touching a single call site.
+
+     It lives in `@layer base` on purpose. Tailwind's `utilities` layer is ordered
+     after `base`, so a deliberate per-icon override like `[stroke-width:2.25]`
+     still wins — layer order decides, not specificity. That is what keeps the
+     heavier weights on alert glyphs (StatusMark, ErrorState) working. */
+  svg[stroke-width] {
+    stroke-width: var(--icon-stroke);
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+
+  /* One focus treatment for everything focusable. Never remove this without
+     replacing it — keyboard users lose the ability to tell where they are. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Any column of digits that can change must not shift its own layout. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+}
+
+/* =============================================================================
+   THE EYEBROW — small uppercase tracked label above a page title or a group
+   =============================================================================
+
+   One definition, because there were previously SIX: tracking values of 0.14,
+   0.12, 0.1, 0.08 and 0.06em plus Tailwind's `tracking-wide`, split across two
+   font families, with no rule about which to use where. Nobody was choosing
+   between them; they were just whatever the last file did.
+
+   It is SANS, not mono. Eyebrows used to be mono, which put the machine voice on
+   what is really a piece of human labelling ("FOUNDATIONS", "PENDING INVITES") —
+   and it meant mono was carrying three unrelated jobs at once. Mono now means
+   exactly one thing: a measured value, plus the wordmark. A label is neither.
+
+   WHERE IT IS ALLOWED: above a PAGE title (SectionHeader level 1), and as a
+   standalone label for a group of controls that has no title of its own — a
+   filter group, a pill row. It is NOT a section heading's kicker and it is NOT a
+   supporting line; both of those were tried and both read as noise once every
+   section on a page had one.
+
+   DELIBERATELY UNLAYERED. Tailwind's layer order is `theme, base, components,
+   utilities`, so a utility beats anything in `base` AND anything in `components`
+   — `.eyebrow text-xs` used to silently win and reopen the six-recipes problem
+   this utility exists to close. An unlayered normal declaration outranks every
+   layer, so this is the one rule in the kit that a utility cannot quietly
+   override. Colour, margin and display stay untouched and stay overridable,
+   which covers every legitimate use. The escape hatch is `text-xs!`, and needing
+   it is a smell — if a second size is genuinely required it is a second utility,
+   not an override.
+
+   Colour is deliberately NOT set here. It varies with what the eyebrow sits on:
+   `ink-secondary` on the canvas (the ambient layer makes anything lighter
+   illegible there — see AmbientBackground), `ink-tertiary` on a surface.
+   ============================================================================= */
+.eyebrow {
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* =============================================================================
+   SURFACE UTILITIES
+   ============================================================================= */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     .panel-edge — the single definition of an elevated surface's own boundary.
+
+     Definition of elevated surfaces lives HERE, not in the shadow. The shadow
+     tokens deliberately carry no ring (see tokens.css), because a ring plus a
+     border is a visible doubled edge and the fastest way to make a light UI look
+     cheap. One border, one edge, and the shadow is pure lift.
+
+     1.5px rather than 1px: at 1px a border on a white card reads as a rendering
+     artefact; at 2px it reads heavy in light mode. Internal dividers stay 1px via
+     --color-line-inner.
+     --------------------------------------------------------------------------- */
+  .panel-edge {
+    border: var(--border-width-panel) solid var(--color-line);
+    /* Required, not cosmetic. --color-line is an ALPHA colour, and by default an
+       element's background paints out to the border-box — i.e. underneath its own
+       border. A white card would therefore shine through its own edge and dilute
+       it to roughly half the intended value. Clipping the fill to the padding box
+       is what makes 14% actually render as 14%. */
+    background-clip: padding-box;
+  }
+
+  /* ---------------------------------------------------------------------------
+     .surface-veil — the translucent CONTENT surface.
+
+     The second, safe tier of transparency. Not glass: no backdrop-filter, so it
+     costs no compositor work and blurs nothing. See --color-surface-veil in
+     tokens.css for why 80% and why controlling the backdrop is what makes this
+     legitimate where glass-on-content is not.
+
+     `background-clip: padding-box` is doubly required here. The fill is alpha AND
+     the border is alpha, so without it the two would overlap and the edge would
+     render lighter than --color-line specifies.
+     --------------------------------------------------------------------------- */
+  .surface-veil {
+    background-color: var(--color-surface-veil);
+    background-clip: padding-box;
+  }
+
+  /* THE NESTING GUARD. Alpha fills multiply: a veil inside a veil is 0.8 × 0.8 =
+     0.64 effective, so a nested card would read darker than its parent instead of
+     the other way round — the exact inversion of what elevation means. Rather than
+     asking every author to remember, a veil that finds itself inside another veil
+     turns opaque. One rule, self-enforcing, and it mirrors the concentric-radius
+     guard Card already ships. */
+  .surface-veil .surface-veil {
+    background-color: var(--color-surface);
+  }
+
+  /* ---------------------------------------------------------------------------
+     .glass — translucent + blurred chrome.
+
+     RULES (enforced by convention, documented in /docs):
+       1. Navigational chrome ONLY — topbar, side rails, composer. Never body
+          content, never data-dense cards. Reading beats effect.
+       2. The BARRIER LAYER is mandatory. `--color-glass` alone is too sheer for
+          text to survive over arbitrary backdrops, so ::before paints a solid
+          low-opacity fill beneath the content. This is what keeps body text
+          ≥4.5:1 instead of "usually fine".
+       3. Always paired with an elevation shadow. Translucency alone reads as
+          broken; translucency + lift reads as floating.
+     --------------------------------------------------------------------------- */
+  .glass {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--color-glass);
+    /* The filter is composed from two LOCAL custom properties rather than written
+       inline, and that is not a style preference — it is a workaround for a real
+       minifier bug. Written literally, the at-rest state's `blur(0px)` gets
+       "optimised" by Lightning CSS into `blur()`, which is invalid, so the browser
+       drops the whole declaration and the transparent state silently never
+       applies. A `var()` is opaque to the minifier, so the argument survives.
+
+       It also makes the state override below read as data rather than as a
+       re-declaration of the whole filter chain. */
+    --glass-blur: var(--blur-glass);
+    --glass-saturate: var(--saturate-glass);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    /* Glass gets the same real edge as any other elevated surface — arguably it
+       needs it more, since a translucent fill has no inherent boundary. */
+    border: var(--border-width-panel) solid var(--color-line);
+    background-clip: padding-box;
+    /* The lift, plus a SPECULAR EDGE: a bright hairline along the top inside face.
+       Real glass catches light on its top bevel, and this one line is most of why
+       a translucent panel reads as a physical pane rather than as reduced opacity.
+       Inset, so it sits inside the border rather than fighting it. */
+    box-shadow:
+      inset 0 1px 0 oklch(100% 0 0 / 0.55),
+      var(--shadow-lg);
+    /* Every property that the at-rest state below turns off. Listed explicitly
+       rather than `transition: all`, so a future addition to .glass cannot start
+       animating by accident. */
+    transition:
+      background-color var(--duration-normal) var(--ease-out-quint),
+      backdrop-filter var(--duration-normal) var(--ease-out-quint),
+      -webkit-backdrop-filter var(--duration-normal) var(--ease-out-quint),
+      border-color var(--duration-normal) var(--ease-out-quint),
+      box-shadow var(--duration-normal) var(--ease-out-quint);
+  }
+
+  /* ---------------------------------------------------------------------------
+     ADAPTIVE GLASS — opt-in, via `data-lifted`.
+
+     Glass exists to separate chrome from the content passing beneath it. At the
+     very top of a page there IS no content beneath it yet, so the fill, the blur,
+     the border and the shadow are all separating it from nothing — they just draw
+     a rectangle over the page for no reason. So the topbar starts fully
+     transparent and materialises the moment content actually arrives under it.
+
+     This is OPT-IN and only the topbar uses it. The session rails and the composer
+     always have canvas content behind them, so they are always glass; an element
+     without a `data-lifted` attribute is untouched by these rules.
+
+     `blur(0px)` rather than `none`: `none` is not interpolable with a length, so
+     the blur would snap rather than fade. This is the one detail that makes the
+     transition read as the surface *arriving* rather than *appearing*.
+     --------------------------------------------------------------------------- */
+  .glass[data-lifted="false"] {
+    background-color: transparent;
+    /* Only the two knobs change. var() substitution happens at computed-value
+       time, so the transition still interpolates blur(0px) -> blur(44px) properly. */
+    --glass-blur: 0px;
+    --glass-saturate: 100%;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  /* The barrier layer goes with it — it exists to guarantee text contrast over an
+     unknown backdrop, and at rest the backdrop is the ambient layer we control. */
+  .glass[data-lifted="false"]::before {
+    opacity: 0;
+  }
+
+  .glass::before {
+    transition: opacity var(--duration-normal) var(--ease-out-quint);
+  }
+
+  /* The barrier layer. Sits under content, above the backdrop. */
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--color-glass-barrier);
+    pointer-events: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     NEUMORPHIC MICRO-INTERACTIONS
+
+     Neumorphism removes contrast by design — a control the same color as its
+     ground, separated only by soft shadow. That reliably fails WCAG and
+     disappears in sunlight, so it is NOT the base language here.
+
+     It is allowed in exactly one situation: a small control whose *pressed vs.
+     unpressed* physicality is the information, and which carries no long-form
+     text. Toggle tracks, segmented-control wells, slider grooves. The label
+     always lives on an opaque sibling, never on the neumorphic surface itself.
+     --------------------------------------------------------------------------- */
+
+  /* Inset well — "things go in here". Used for toggle/segmented tracks. */
+  .neu-inset {
+    background-color: var(--color-surface-sunken);
+    box-shadow:
+      inset 0 1px 2px oklch(15% 0.01 255 / 0.09),
+      inset 0 -1px 0 oklch(100% 0 0 / 0.7);
+  }
+
+  /* Raised nub — "this is the moving part". Used for thumbs/knobs. */
+  .neu-raised {
+    background-color: var(--color-surface);
+    box-shadow:
+      0 1px 2px oklch(15% 0.01 255 / 0.14),
+      0 0 0 1px oklch(15% 0.01 255 / 0.05),
+      inset 0 1px 0 oklch(100% 0 0 / 0.9);
+  }
+
+  /* The recurring metric/progress strip. One motif reused everywhere something
+     has a proportion: fleet card load, generation progress, balance remaining. */
+  .meter {
+    height: var(--meter-thickness);
+    border-radius: var(--radius-full);
+    /* -inner, not -line: the panel-edge value is deliberately strong now, and a
+       3px track painted with it reads as a heavy grey bar rather than a track. */
+    background-color: var(--color-line-inner);
+    overflow: hidden;
+  }
+  .meter > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background-color: var(--color-accent);
+  }
+
+  /* SEGMENTED MODE. Must come AFTER `.meter > span` — equal specificity, so
+     source order is what wins. Without it the wrapper inherits the accent fill
+     and bleeds through the gaps between segments.
+
+     `gap: 1px` shows the track's own colour between segments. At 3px tall,
+     adjacent steps of one accent ramp are too close to separate by lightness
+     alone; the hairline gap is what makes four segments read as four. */
+  .meter > .meter-segments {
+    display: flex;
+    gap: 1px;
+    background-color: transparent;
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY ESCAPE HATCHES
+   First-class, not an afterthought. The design is allowed to be atmospheric
+   only because it degrades honestly when the user has asked it not to be.
+   ============================================================================= */
+
+/* User wants more contrast → glass becomes solid, hairlines become real lines,
+   and the ambient layer is REMOVED rather than dimmed. Dimming an atmospheric
+   layer still leaves it interfering with text; the honest response to "I need
+   more contrast" is to take the atmosphere away entirely. */
+@media (prefers-contrast: more) {
+  .glass {
+    background-color: var(--color-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: var(--border-width-panel) solid var(--color-border-contrast);
+  }
+  .glass::before {
+    display: none;
+  }
+  /* The panel border is already the load-bearing edge here, so high contrast
+     only has to darken it — it does not have to invent one. */
+  .panel-edge {
+    border-color: var(--color-border-contrast);
+  }
+  /* Translucency is the first thing to go when someone asks for more contrast. */
+  .surface-veil,
+  .surface-veil .surface-veil {
+    background-color: var(--color-surface) !important;
+  }
+  .ambient-ground,
+  .ambient-layer {
+    background-image: none !important;
+    display: none;
+  }
+  .neu-inset,
+  .neu-raised {
+    box-shadow: none;
+    border: 1px solid var(--color-border-contrast);
+  }
+  :root {
+    --color-line: oklch(15% 0.01 255 / 0.35);
+    --color-line-inner: oklch(15% 0.01 255 / 0.22);
+    --color-line-strong: oklch(15% 0.01 255 / 0.55);
+    --color-ink-tertiary: var(--color-border-contrast);
+    --color-ink-muted: var(--color-graphite-600);
+  }
+}
+
+/* Some platforms expose transparency preference separately from contrast. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background-color: var(--color-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .surface-veil,
+  .surface-veil .surface-veil {
+    background-color: var(--color-surface) !important;
+  }
+  .glass::before {
+    display: none;
+  }
+  .ambient-ground,
+  .ambient-layer {
+    background-image: none !important;
+    display: none;
+  }
+}
+
+/* Motion: the per-utility gates in animations.css handle the named motions.
+   This catches transitions and anything third-party. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

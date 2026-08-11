@@ -1,0 +1,762 @@
+/* =============================================================================
+   model.store — Design Tokens
+   =============================================================================
+
+   Three layers, in dependency order:
+
+     1. BASE      Raw perceptual ramps in OKLCH. Never referenced by a component.
+     2. SEMANTIC  Purpose-named aliases ("what is this for"). Components use ONLY
+                  these. Retheming the product = remapping this layer.
+     3. COMPONENT Per-component knobs. Lets a consumer retune one component
+                  without disturbing semantics.
+
+   Why OKLCH: it is perceptually uniform, so a ramp built by stepping lightness
+   produces evenly-spaced steps to the human eye — unlike HSL, where e.g. yellow
+   at 50% reads far brighter than blue at 50%. It also reaches colors sRGB hex
+   cannot express, and the L channel maps close enough to contrast that you can
+   reason about accessibility while picking values.
+
+   PORTABILITY: every token below is a plain CSS custom property. Tailwind's
+   @theme additionally generates utilities from them (bg-surface-raised, etc.),
+   but a consumer on any stack can copy this file and use var(--…) directly.
+   That is the point — this file is the contract, Tailwind is a convenience.
+   ============================================================================= */
+
+@theme {
+  /* ---------------------------------------------------------------------------
+     LAYER 1 — BASE RAMPS
+     --------------------------------------------------------------------------- */
+
+  /* Graphite — the cool neutral ground.
+     Hue 255 (blue side) at low chroma. Cool rather than warm on purpose: a warm
+     neutral reads as paper and organic, a cool one reads as technical. This is
+     the single biggest lever on whether a light theme feels futuristic, and it
+     carries ~90% of every surface in the product.
+
+     Chroma sits slightly higher than a warm neutral would need (0.004–0.014 vs
+     0.003–0.010). Cool greys go lifeless faster than warm ones as chroma drops,
+     so a touch more is required to keep them from reading as dead pixels.
+
+     THE TOP OF THIS RAMP IS DELIBERATELY NOT NEAR-WHITE. It used to be (50 was
+     99% L), and that was the single thing holding the whole system back: a white
+     card on a 99% ground has a 1.01:1 relationship with it, so every panel in the
+     product was floating on nothing and the elevation work was invisible. At 96.5%
+     the ground is a real surface, cards read as objects sitting on it, and the
+     ambient layer behind has somewhere to live. Chroma rises with the darkness
+     (0.007 rather than 0.004) so it reads as a tinted cool ground rather than
+     dirty grey — that distinction is the whole difference between this and
+     "greyed-out light mode". */
+  --color-graphite-50: oklch(96.5% 0.007 255);
+  --color-graphite-100: oklch(94% 0.009 255);
+  --color-graphite-200: oklch(88.5% 0.013 255);
+  --color-graphite-300: oklch(85% 0.013 255);
+  --color-graphite-400: oklch(76.5% 0.014 255);
+  --color-graphite-500: oklch(63.5% 0.015 255);
+  --color-graphite-600: oklch(51.5% 0.015 255);
+  --color-graphite-700: oklch(40.5% 0.014 255);
+  --color-graphite-800: oklch(29.5% 0.012 255);
+  --color-graphite-900: oklch(21.5% 0.011 255);
+  --color-graphite-950: oklch(15% 0.01 255);
+
+  /* Signal — the one accent. Hue 202: a cool cyan-blue.
+     Deliberately clear of the two exhausted defaults (the #3B82F6 dev-tool blue
+     at ~250 and indigo/violet SaaS gradients at ~275).
+
+     MOVED 202 -> 224. At 202 the dark end of this ramp rendered #005e68: R0 G94
+     B104. That is technically blue-leaning by ten points and reads as petrol
+     GREEN to almost everyone, which put the brand accent in visual conversation
+     with the success colour. 224 is unambiguously blue at every step and is still
+     26 degrees clear of the dev-tool default.
+
+     NOTE ON CHROMA: these values are materially more saturated than a warm-ground
+     palette would need. The old ground was warm, so warm-vs-cool did the work of
+     separating accent from surface. On a cool ground that mechanism is gone, and
+     the remaining one is chroma contrast — a near-neutral ground against a
+     genuinely saturated accent. Desaturate these and the accent collapses into
+     "a slightly bluer grey", which is the failure mode of every cool-on-cool
+     palette. */
+  --color-signal-50: oklch(97.2% 0.02 224);
+  --color-signal-100: oklch(93.5% 0.045 224);
+  --color-signal-200: oklch(87.5% 0.075 224);
+  --color-signal-300: oklch(79% 0.105 224);
+  --color-signal-400: oklch(69% 0.13 224);
+  --color-signal-500: oklch(59.5% 0.14 224);
+  --color-signal-600: oklch(50.5% 0.132 224);
+  --color-signal-700: oklch(42% 0.115 224);
+  --color-signal-800: oklch(34% 0.095 224);
+  --color-signal-900: oklch(27% 0.075 224);
+  --color-signal-950: oklch(19.5% 0.055 224);
+
+  /* Status ramps. Each is a DIFFERENT hue from --color-signal-* on purpose:
+     semantic color must never be confusable with brand accent, or "this is
+     interactive" and "this is healthy" become the same signal. */
+
+  /* Verdant — success / running / healthy. Hue 150. */
+  --color-verdant-50: oklch(97% 0.02 150);
+  --color-verdant-100: oklch(93% 0.04 150);
+  --color-verdant-300: oklch(78% 0.09 150);
+  --color-verdant-500: oklch(60% 0.1 150);
+  --color-verdant-600: oklch(52% 0.095 150);
+  --color-verdant-700: oklch(43% 0.08 150);
+
+  /* Ember — warning / degraded / attention. Hue 58 (orange-amber).
+     Now that the ground is cool, amber is the furthest thing on the wheel from
+     every other colour in the system — which makes it the loudest available
+     warning without reaching for red. */
+  --color-ember-50: oklch(97% 0.025 58);
+  --color-ember-100: oklch(93% 0.055 58);
+  --color-ember-300: oklch(80% 0.11 58);
+  --color-ember-500: oklch(68% 0.13 58);
+  /* 57%, not 59%. Amber is the hardest hue in any palette to make legible on
+     white — luminance peaks around yellow, so the value that looks right is
+     usually the value that fails. At 59% this read 4.27:1 against a white
+     surface, and --color-warning is used as TEXT in a dozen places (and on
+     warning-soft, which is lighter still). 57% clears 4.5:1 with margin while
+     staying a warning rather than a brown. */
+  --color-ember-600: oklch(57% 0.13 58);
+  --color-ember-700: oklch(49% 0.105 58);
+
+  /* Rust — danger / failed / destructive. Hue 25. */
+  --color-rust-50: oklch(97% 0.02 25);
+  --color-rust-100: oklch(93.5% 0.045 25);
+  --color-rust-300: oklch(78% 0.13 25);
+  --color-rust-500: oklch(60% 0.17 25);
+  --color-rust-600: oklch(52% 0.165 25);
+  --color-rust-700: oklch(44% 0.14 25);
+
+  /* ---------------------------------------------------------------------------
+     LAYER 2 — SEMANTIC
+     The only layer components are allowed to reference.
+     --------------------------------------------------------------------------- */
+
+  /* Surfaces. Elevation is expressed as small lightness steps, not big jumps —
+     you should feel the hierarchy rather than see it (the "squint test": blur
+     your eyes and structure should still read, with nothing jumping out). */
+  /* THE PAGE GROUND IS NOT THE TOP OF THE RAMP, and that is the design rather
+     than an oversight. In a conventional light theme the canvas is the lightest
+     thing and surfaces sit on it at the same value; here the surfaces are white
+     and the ground is deliberately BELOW them, so a card reads as an object
+     resting on a page instead of as a region of it.
+
+     WHY IT IS NOT WHITE, having been tried. Set the canvas to 100% and it equals
+     `--color-surface`, so every card survives only on its hairline border — but
+     the real damage is that the INSET/RAISED RELATIONSHIP INVERTS. `sunken` (94%)
+     becomes the only filled thing on the page, so an input reads louder than the
+     card containing it: the thing that is meant to be recessed becomes the most
+     prominent element on screen. The glass chrome also loses its entire
+     justification, because a flat white ground gives it nothing to refract.
+
+     96.5% is where it landed: light enough to read as a bright page rather than
+     as atmosphere, dark enough that the ordering still holds —
+       sunken 94%  <  canvas 96.5%  <  surface 100%
+     which is exactly the sentence the elevation system needs to stay true. Note
+     `sunken`'s job is to read inset against its PARENT, and its parent is almost
+     always a card, not the canvas — so it did not have to move.
+
+     THE GROUND'S LIGHTNESS AND CHROMA LIVE HERE, ONCE. Two places need them: this
+     token, and the animated ground layer in AmbientBackground, which rebuilds the
+     same colour with a moving hue. They used to be written out twice with a comment
+     saying they must match, which is a drift waiting to happen — and the kind that
+     shows up as a seam nobody can explain. They are deliberately NOT the
+     graphite-200 ramp step any more: pinning the ground to a ramp value meant the
+     ramp had to move whenever the ground did, and at 96.5% that would have pushed
+     graphite-200 above graphite-100 and broken monotonicity. */
+  --canvas-l: 96.5%;
+  --canvas-c: 0.007;
+  --color-canvas: oklch(var(--canvas-l) var(--canvas-c) 255);
+  --color-surface: white; /* raised: cards, panels, menus */
+  --color-surface-sunken: var(--color-graphite-100); /* inset: inputs, tracks, fills */
+
+  /* TRANSLUCENT CONTENT SURFACE — the second tier of transparency.
+     `.glass` (blur + 55% fill) is licensed for navigational chrome ONLY, and that
+     rule is correct: backdrop-filter is compositor-expensive and a sheer fill over
+     arbitrary content makes contrast a matter of luck. But that rule was banning
+     *glass*, not *translucency*. This is the safe tier:
+
+       • NO backdrop-filter — so it costs nothing and never blurs text behind it.
+       • 80%, not 55% — high enough that contrast is guaranteed, low enough that a
+         wash passing underneath visibly tints the card (~18/255 of colour shift,
+         which is the entire point).
+       • Legitimate because WE CONTROL THE BACKDROP. The ambient layer is ours, so
+         its darkest point is knowable and the worst case is computable rather than
+         hoped for. Measured on the darkest wash core: ink 18.2:1, ink-secondary
+         8.4:1, ink-tertiary 5.1:1. That is why this is allowed and glass-on-content
+         still is not.
+
+     Content surfaces only. Transient overlays (menus, popovers, dialogs) stay fully
+     opaque — they land over content we do NOT control, which is the original rule
+     and it still holds. See the nesting guard on `.surface-veil` in globals.css. */
+  --color-surface-veil: oklch(100% 0 0 / 0.8);
+
+  /* Hover and pressed fills are ALPHA INK, not solid ramp steps.
+     They used to be graphite-100/200. That worked only while the ground was
+     near-white: the moment canvas moved to 96.5%, a solid 94% hover fill was
+     *lighter* than the ground it sat on in some places and far too heavy on a
+     white card in others — one value cannot be right on canvas, on a white card,
+     on a translucent card and on a sunken input at once. An ink overlay darkens
+     whatever it lands on by the same perceptual amount everywhere. This is exactly
+     the argument the border tokens below already make, applied to state. */
+  --color-surface-hover: oklch(15% 0.01 255 / 0.035);
+  --color-surface-active: oklch(15% 0.01 255 / 0.07);
+
+  /* Text — four levels. Two is not a hierarchy, it's a flat page. */
+  --color-ink: var(--color-graphite-950); /* primary / headings / values */
+  --color-ink-secondary: var(--color-graphite-700); /* supporting body */
+  /* 50.5%, and it left the ramp for the same reason ink-muted did. graphite-600
+     (51.5%) measured 4.43:1 for metadata sitting on GLASS chrome at the frame edge,
+     where the lava is undimmed by the scrim. This is the level real information
+     lives at, so it has to clear 4.5:1 against every background in the product. */
+  --color-ink-tertiary: oklch(50.5% 0.015 255); /* metadata, timestamps, captions */
+  /* PLACEHOLDER AND DISABLED ONLY — and this restriction is the whole point.
+     It was graphite-500 (63.5%), measuring 2.88:1 on the new sunken fill. 55% brings
+     that to 4.07:1 on sunken and 4.85:1 on white.
+
+     4.07:1 does not reach 4.5:1, and it cannot: ink-tertiary has to be dark enough
+     to survive on glass over the lava (50.5%), and this level has to stay visibly
+     LIGHTER than tertiary or the four-level hierarchy collapses into three. Those
+     two requirements do not both fit above 4.5:1.
+
+     That is acceptable for exactly this role and no other. WCAG 1.4.3 exempts text
+     in an inactive component, and placeholder text is transient hint text that
+     duplicates a visible label. So the rule is absolute:
+
+       NO INFORMATION MAY LIVE ONLY IN ink-muted.
+
+     Every informational use — table headers, timestamps, hints, captions, counts,
+     eyebrows — is `ink-tertiary`. If you are reaching for muted on something a user
+     needs to read, you want tertiary. */
+  --color-ink-muted: oklch(55% 0.015 255); /* placeholder + disabled ONLY */
+
+  /* Borders. Low-opacity rather than solid hex, so one token works on canvas,
+     on a card, and on a sunken fill alike.
+
+     These are stronger than they were. Definition of elevated surfaces has moved
+     from shadow to border (see the elevation block below), so `--color-line` now
+     has to carry a visible 1.5px edge rather than a hairline nobody looks at.
+     `--color-line-inner` is the old faint value, kept for INTERNAL dividers —
+     table rows, menu rules, footer tops — which must stay quiet or every table
+     turns into a spreadsheet. */
+  --color-line: oklch(15% 0.01 255 / 0.14); /* panel edges — visible on purpose */
+  --color-line-inner: oklch(15% 0.01 255 / 0.07); /* internal dividers — quiet */
+  --color-line-soft: oklch(15% 0.01 255 / 0.05); /* faintest separation */
+  --color-line-strong: oklch(15% 0.01 255 / 0.24); /* hover / emphasis */
+
+  /* THE HIGH-CONTRAST EDGE. Only used inside `prefers-contrast: more`, and it is a
+     semantic token rather than a ramp step because that block has to work in both
+     themes. It was `--color-graphite-700` written out four times — a 40% grey, which
+     is a strong edge on white and an invisible one on the dim theme's 34% surface.
+     Opaque on purpose: a user asking for more contrast is asking for a real border,
+     not a heavier alpha. */
+  --color-border-contrast: var(--color-graphite-700);
+
+  /* THE PRIMARY ACTION IS INK, NOT ACCENT.
+     These were the same token, and that conflated two different jobs. A saturated
+     accent fill on the one high-emphasis button means the loudest colour on the
+     page is spent on a control rather than on information — and at this accent's
+     lightness it read as petrol green, which is a status colour's job.
+
+     Near-black is the stronger move and the more serious one: it is unmistakably
+     THE action, it never competes with a status colour, and it leaves the accent
+     free to mean "this is data" and "this is selected". White on it measures
+     19.7:1. Hover LIGHTENS rather than darkens, because there is nowhere darker
+     to go from 15%. */
+  --color-action: var(--color-graphite-950);
+  --color-action-hover: var(--color-graphite-800);
+  --color-action-ink: white; /* text ON the action fill */
+
+  /* Accent — data, selection, links. No longer the primary button. */
+  --color-accent: var(--color-signal-700);
+  --color-accent-hover: var(--color-signal-800);
+  --color-accent-text: white; /* text ON accent */
+  --color-accent-soft: oklch(42% 0.115 224 / 0.1); /* tinted wash — tracks signal-700 */
+  --color-accent-ink: var(--color-signal-700); /* accent-colored text on light */
+
+  /* THE -ink RULE. A `-soft` fill is its own hue at 8–12% alpha, so it darkens the
+     ground with the SAME colour as the text sitting on it — contrast drops instead
+     of holding. Text on a plain surface may use the base token; text on a same-hue
+     `-soft` fill must use `-ink` (the 700 step). Measured: warning on warning-soft
+     was 3.99:1 with the base token and is 5.55:1 with -ink. */
+
+  /* Status */
+  --color-success: var(--color-verdant-600);
+  --color-success-soft: oklch(52% 0.095 150 / 0.12);
+  --color-success-ink: var(--color-verdant-700); /* success text ON success-soft */
+  --color-warning: var(--color-ember-600);
+  --color-warning-soft: oklch(57% 0.13 58 / 0.12);
+  --color-warning-ink: var(--color-ember-700); /* warning text ON warning-soft */
+  --color-danger: var(--color-rust-600);
+  --color-danger-soft: oklch(52% 0.165 25 / 0.08);
+  --color-danger-ink: var(--color-rust-700); /* danger text ON danger-soft */
+  --color-idle: var(--color-graphite-400);
+
+  /* Glass. See the barrier-layer note in globals.css — glass is for
+     navigational chrome only, never for body content.
+
+     38%, not 55%. The fill went DOWN and the blur went UP, and those two moves
+     are the same move: what makes a heavily-blurred panel readable is not the
+     opacity of its fill, it is that the blur has destroyed the high-frequency
+     detail behind it. A 44px blur turns whatever scrolls under the bar into a
+     smooth wash, and a smooth wash can be sat on at 38% where a sharp one could
+     not. Measured against a pessimistic backdrop (a quarter of the bar covered by
+     a black button): ink 14.3:1, ink-secondary 6.5:1.
+
+     This is what lets the colour of the page genuinely come through the chrome,
+     rather than the chrome being a white bar that happens to be slightly see-through. */
+  --color-glass: oklch(100% 0 0 / 0.38);
+  --color-glass-barrier: oklch(100% 0 0 / 0.18); /* the guaranteed-contrast layer */
+
+  /* THE AMBIENT SCRIM, tokenised so it can invert with the theme. It lifts the
+     middle of the frame away from the drifting blobs, which is what keeps ink
+     legible over the busiest part of the ambient layer. On a light ground it
+     washes toward white; the dim theme washes toward black instead. These were
+     three literals inside AmbientBackground until the dim theme needed them. */
+  --color-scrim-strong: oklch(98.5% 0.004 255 / 0.42);
+  --color-scrim-mid: oklch(98.5% 0.004 255 / 0.3);
+  --color-scrim-soft: oklch(98.5% 0.004 255 / 0.14);
+
+  /* ---------------------------------------------------------------------------
+     TYPE
+     Base 15px with a ~1.2 (minor-third-ish) ratio. Tighter than the 16/1.25
+     default because this is an operator tool with dense data, not an article.
+     Hierarchy is carried by weight + color as much as by size.
+     --------------------------------------------------------------------------- */
+  /* THE THREE FACES. `app/fonts.ts` loads them; this is where they become roles.
+     Nothing else in the kit names a typeface, so these three declarations plus
+     the tracking below are the entire type system's surface area.
+
+     THE VOICES, which is the rule to remember:
+       display → the product speaks. h1 and h2, and nothing else.
+       sans    → a person speaks. Body copy, labels, descriptions, eyebrows.
+       mono    → the machine speaks. Wordmark, and every measured value: IDs,
+                 latencies, token counts, currency, timestamps. */
+  --font-sans: var(--font-body-face), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  /* THE DISPLAY FACE — headings, and only headings.
+     This was Geist Mono, which meant the product did not really have a display
+     face: headings were the DATA face at a larger size. It read as "bigger text"
+     rather than as a voice, and it spent the machine's own register on something
+     a person wrote.
+
+     Instrument Serif separates the two. A serif also happens to be the one thing
+     a screenshot in this category cannot be mistaken for — competitors ship a
+     grotesque or a mono, without exception — which is why it is worth the second
+     webfont that the mono display was chosen to avoid.
+
+     IT HAS NO WEIGHT AXIS. Instrument Serif ships exactly one weight — 400 — so
+     it cannot gain contrast by getting bolder, only by getting bigger. That single
+     fact sets the whole heading ladder: 22px is the serif's floor, and the tier
+     below it has to change FACE rather than merely shrink. See the three tiers in
+     globals.css, and /docs/patterns/headers for the pattern they compose into. */
+  --font-display: var(--font-display-face), Georgia, "Times New Roman", serif;
+
+  /* TRACKING, tokenised. There were previously SIX different hand-written
+     `tracking-[…em]` values across eyebrows alone and no token at all. Optical
+     sizing rule: the larger the type, the tighter it must be set.
+
+     These loosened when the display face changed from mono to serif, and had to:
+     a monospace starts out wide and needs pulling in hard, while a serif at
+     -0.03em collides its own serifs and the headline turns to mush. Tracking is
+     not a property of the size, it is a property of the FACE at that size — which
+     is why it moves whenever the face does.
+
+     `--tracking-title` was called `--tracking-tight`, which was a trap: that name
+     SILENTLY OVERRODE Tailwind's own `--tracking-tight: -0.025em`, so anyone
+     reaching for the near-universal `tracking-tight` idiom got -0.011em and no
+     warning. Renaming hands the stock utility back its stock meaning. */
+  --tracking-display: -0.015em; /* h1 — page titles, the serif at 34px */
+  --tracking-heading: -0.012em; /* h2 — section headings, the serif at 22px */
+  --tracking-title: -0.011em; /* h3–h6 and card titles — the sans */
+  --tracking-label: 0.08em; /* uppercase eyebrows — see the .eyebrow utility */
+  --tracking-mono: -0.01em; /* Geist Mono set as a NAME rather than as data:
+                               the wordmark and the auth-page logotype. Belongs
+                               to the face, which is why it is a token and not
+                               three copies of an arbitrary value. */
+
+  /* WEIGHT. Two tokens, because there are two decisions: a label is medium, a
+     heading is semibold. Everything else keeps Tailwind's own font-weight-*.
+
+     THE DISPLAY FACE GETS NO WEIGHT TOKEN, deliberately — a token for "the only
+     option" is noise. globals.css states the 400 once, next to the synthesis
+     guard that makes the constraint enforceable.
+
+     NAMING TRAP: `font-<name>` resolves the --font-* FAMILY namespace BEFORE
+     --font-weight-*. A `--font-weight-display` would be permanently shadowed by
+     --font-display and its utility would silently emit a font-family instead.
+     Never reuse a face name for a weight. */
+  --font-weight-label: 500;
+  --font-weight-heading: 600;
+
+  /* THE SCALE — nine steps, on whole pixels and round rem values.
+     11 · 12 · 14 · 16 · 20 · 26 · 32 · 40 · 52
+     Ratios 1.09 / 1.17 / 1.14 / 1.25 / 1.30 / 1.23 / 1.25 / 1.30
+
+     THE WHOLE LADDER MOVED UP, and the headings moved further than the body. The
+     previous scale (11 · 12 · 13 · 15 · 18 · 22 · 28 · 34 · 44) was pitched for a
+     ground with atmosphere on it, where type had to stay compact to keep the page
+     from feeling crowded against a mid-tone canvas. On a 96.5% ground there is
+     more light to spend, and the display serif in particular was being asked to
+     carry a page at a size that suited a mono.
+
+     WHY THE TOP GREW MORE. Ratios below 1.2 are the compact end of a type scale;
+     the old ladder ran at 1.08–1.15 through its middle, which is where "everything
+     is nearly the same size" comes from. The new steps sit at 1.23–1.30 from
+     `lg` upward, so h1/h2/h3 separate at a glance rather than on inspection.
+     h2 against h3 went from 1.47x to 1.63x.
+
+     There were ten steps until recently. `--text-md: 1rem` sat 1px above
+     `--text-base` and both were live (26 uses against 6) — not a scale step, a
+     rounding error with two names. The 16px role split in two: emphasis became
+     `text-base font-semibold`, plain body became `text-base`.
+
+     Note which steps are HEADINGS and which are FIGURES. 52/40/26/16 are the
+     heading ladder; 32 is the large-number size (StatTile, the billing balance)
+     and is deliberately not a heading size. They used to fight over the same
+     steps, which is how 28px ended up meaning two things.
+
+     Round rem values are not cosmetic: 0.8125rem and 0.9375rem were the previous
+     13 and 15, and every one of them rounds differently at a non-16px root size. */
+  --text-2xs: 0.6875rem; /* 11px — uppercase eyebrows, badges. Held: an eyebrow
+                            that grows starts shouting, and it is tracked +0.08em
+                            already, so it occupies more width than its size. */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.75rem; /* 12px — metadata, card meta lines */
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.875rem; /* 14px — dense UI, pills, table rows, every support line.
+                          The most load-bearing step in the product by a factor of
+                          five, so this is the +1 that is felt most. */
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem; /* 16px — body default, and block headings at 600 */
+  --text-base--line-height: 1.55;
+  --text-lg: 1.25rem; /* 20px — dialog titles, lg control variants */
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.625rem; /* 26px — h2, the section heading. Comfortably clear of the
+                          serif's ~22px floor rather than sitting on it. */
+  --text-xl--line-height: 1.3;
+  --text-2xl: 2rem; /* 32px — the large figure, NOT a heading */
+  --text-2xl--line-height: 1.22;
+  --text-3xl: 2.5rem; /* 40px — h1, the page title */
+  --text-3xl--line-height: 1.12;
+  --text-4xl: 3.25rem; /* 52px — the app hero's large-viewport step. One use, and
+                          it should stay that way. */
+  --text-4xl--line-height: 1.05;
+
+  /* Inline <code>. RELATIVE on purpose: a code span has to track whatever it is
+     set inside, because it appears in 13px table cells and 15px paragraphs alike.
+     `inherit` on the companion keeps the surrounding leading intact — a fixed
+     line-height inside a paragraph is what makes code spans lump the line box. */
+  --text-code: 0.85em;
+  --text-code--line-height: inherit;
+
+  /* THE MEASURE. There were NINE different caps doing this one job — max-w-prose
+     ×4, 62ch ×4, 60ch ×2, 58ch ×2, 46ch ×2, and one each of 68/64/56/54 — plus a
+     docs page asserting a global ~65ch rule that did not exist anywhere in the CSS.
+
+     62ch, not 65ch: 62 was already the mode of what had been written by hand, and
+     most of the copy it caps is 13px, where 65ch starts to overrun the column it
+     sits in.
+
+     `max-w-prose` IS NOT THIS and must not be used. It is a hardcoded static 65ch
+     utility in Tailwind with no theme key behind it, so it can never be retuned —
+     which is reason enough on its own. */
+  --container-measure: 62ch; /* body copy under a heading */
+  --container-measure-narrow: 46ch; /* centred blurbs: empty states, notices */
+
+  /* ---------------------------------------------------------------------------
+     RADIUS
+     A scale, not per-element guesses. Concentric rule: a child's radius should
+     be parent radius minus the padding between them, or nesting looks wrong.
+     --------------------------------------------------------------------------- */
+  --radius-xs: 0.375rem; /* 6px  — tiny chips, inline marks */
+  --radius-sm: 0.5rem; /* 8px  — menu items, small controls */
+  --radius-md: 0.625rem; /* 10px — buttons (sm/md), nav links */
+  --radius-lg: 0.875rem; /* 14px — inputs, pills-with-content */
+  --radius-xl: 1rem; /* 16px — large buttons */
+  --radius-2xl: 1.125rem; /* 18px — cards, floating panels */
+  --radius-3xl: 1.25rem; /* 20px — dialogs, composer */
+  --radius-full: 9999px; /* capsules: badges, avatars, the topbar */
+
+  /* ---------------------------------------------------------------------------
+     ELEVATION
+     Light-mode lift = a 1px ring plus two soft depths. The ring does the edge
+     definition; the blurs do the float. Never a single hard drop shadow.
+     --------------------------------------------------------------------------- */
+  --shadow-xs: 0 0 0 1px oklch(15% 0.01 255 / 0.06);
+  /* NOTE: sm and up carry NO ring. Elevated surfaces get a real 1.5px border
+     instead, and a ring underneath one produces a visible doubled edge — the
+     single most common way a light UI starts looking cheap. These are pure blur
+     and lift; the border does the edge. */
+  --shadow-sm:
+    0 1px 2px -1px oklch(15% 0.01 255 / 0.07), 0 2px 8px oklch(15% 0.01 255 / 0.05);
+  --shadow-md:
+    0 4px 10px -2px oklch(15% 0.01 255 / 0.09), 0 12px 28px oklch(15% 0.01 255 / 0.08);
+  --shadow-lg: 0 16px 38px -14px oklch(15% 0.01 255 / 0.26);
+  --shadow-xl: 0 22px 50px -16px oklch(15% 0.01 255 / 0.32);
+  /* Composer sits above the page and casts upward as well as down. */
+  --shadow-composer:
+    0 -2px 14px oklch(15% 0.01 255 / 0.06), 0 10px 28px -8px oklch(15% 0.01 255 / 0.12);
+  --shadow-focus: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
+
+  /* ---------------------------------------------------------------------------
+     MOTION
+     Durations short enough to feel instant. Custom ease-out only — never
+     ease-in, which delays the first frame, the exact moment the user is
+     watching, and reads as sluggish.
+     --------------------------------------------------------------------------- */
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-quint: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --duration-instant: 100ms; /* press feedback */
+  --duration-fast: 160ms; /* hover, small reveals */
+  --duration-normal: 220ms; /* menus, expanding panels */
+  --duration-slow: 320ms; /* dialogs, drawers */
+  --duration-ambient: 60s; /* background drift */
+
+  /* ---------------------------------------------------------------------------
+     Z-INDEX — a named scale so stacking is never guessed at
+     --------------------------------------------------------------------------- */
+  /* Below everything. The ambient layer is `fixed` and painted first; content
+     sits in a `relative --z-base` wrapper that beats it on source order. Named
+     rather than left as a bare `z-0` so nobody "tidies it away" later. */
+  --z-ambient: 0;
+  --z-base: 0;
+  /* Above an immediate SIBLING inside my own stacking context — not above the
+     page. Used by the Tabs label so it clears the sliding pill indicator behind
+     it. Deliberately 1: anything reaching for a page-level layer wants one of the
+     tokens below, and conflating the two is how z-index wars start. */
+  --z-local: 1;
+  --z-raised: 10;
+  --z-rail: 20;
+  --z-sticky: 90;
+  --z-nav: 100;
+  --z-dropdown: 110;
+  --z-dialog: 200;
+  --z-toast: 300;
+}
+
+/* =============================================================================
+   THE DIM THEME
+   =============================================================================
+
+   Dark, and deliberately not black. The ground is 30% L — clearly dim, clearly
+   not the near-black a media viewer would want. Toggled by `data-theme="dim"` on
+   <html>; see components/chrome/theme-toggle.tsx.
+
+   IT REMAPS THE SEMANTIC LAYER AND NOTHING ELSE, which is the promise the token
+   architecture makes at the top of this file: "retheming the product = remapping
+   this layer". No base ramp moves, no component reads a different variable, and
+   no call site knows the theme exists. That is the whole test of whether the
+   three-layer split was real, and this is the first time it has been exercised.
+
+   THE ORDERING IS PRESERVED, NOT INVERTED:
+     sunken 25%  <  canvas 30%  <  surface 34%
+   Exactly the relationship the light theme has (94 < 96.5 < 100), so "raised is
+   lighter, inset is darker" stays true in both and the elevation doctrine does
+   not need a second version of itself. Separation is actually BETTER here —
+   1.16:1 surface-to-canvas against the light theme's 1.11:1.
+
+   EVERY TEXT TOKEN WAS MEASURED ON THE 34% SURFACE, because that is the lightest
+   thing text ever sits on in this theme and therefore the worst case:
+     ink 10.5  ·  ink-secondary 5.9  ·  ink-tertiary 4.7
+     accent 4.9  ·  success 5.4  ·  warning 6.2  ·  danger 4.8
+   All clear 4.5:1. Note ink-tertiary clears it here and does NOT in the light
+   theme, where it sits at ~4.6 against a much lighter ground — the dim theme is
+   the more accessible of the two, which is not the usual direction.
+
+   `--color-ink-muted` is 2.98:1 and that is correct. It is placeholder and
+   disabled text only; a disabled control that reads at full contrast is not
+   disabled. Do not "fix" it.
+
+   WHAT HAD TO CHANGE SHAPE, not just value:
+
+   1 · THE PRIMARY ACTION INVERTS. On light it is near-black with white text; here
+       it is near-white with dark text. The rule being preserved is "the primary
+       action is the highest-contrast object on screen", and on a dim ground the
+       only way to satisfy it is to go the other way. 15.2:1 fill-to-label.
+
+   2 · BORDERS CARRY THE ELEVATION, NOT SHADOWS. A drop shadow on a dark ground is
+       nearly invisible — there is no light for it to remove. So the line tokens
+       become white alphas at roughly double their light-theme strength, and the
+       shadows drop to about a third. This is why the kit's elevation section
+       insists the ring does the edge definition and the blur only does the float:
+       on dim, the ring is all there is.
+
+   3 · THE GLASS AND THE SCRIM BOTH FLIP. Glass was white at 38%; a white veil over
+       a dim ground is a bright bar, not glass. It becomes a dark translucency. The
+       ambient scrim was washing toward 98.5% white to lift ink away from the
+       blobs — kept as-is it turns this canvas into pale grey, so it washes toward
+       black instead and does the same job in the other direction.
+   ============================================================================= */
+:root[data-theme="dim"] {
+  /* The ground, and the two variables AmbientBackground rebuilds it from. */
+  --canvas-l: 30%;
+  --canvas-c: 0.014;
+  --color-canvas: oklch(var(--canvas-l) var(--canvas-c) 255);
+  --color-surface: oklch(34% 0.013 255);
+  --color-surface-sunken: oklch(25% 0.015 255);
+
+  /* The translucent content tier. Dark, and a touch more opaque than the light
+     theme's 0.8: a dim veil has less lightness to spend, so it needs more of the
+     surface underneath it hidden before text stops fighting the ambient layer. */
+  --color-surface-veil: oklch(34% 0.013 255 / 0.86);
+
+  /* Hover and active are LIGHT alphas here. On light they darken the surface;
+     darkening a dim surface makes it recede, which is the opposite of what a
+     hover means. */
+  --color-surface-hover: oklch(100% 0 0 / 0.06);
+  --color-surface-active: oklch(100% 0 0 / 0.1);
+
+  --color-ink: oklch(96% 0.008 255);
+  --color-ink-secondary: oklch(78% 0.012 255);
+  --color-ink-tertiary: oklch(72% 0.014 255);
+  --color-ink-muted: oklch(60% 0.014 255);
+
+  /* Roughly double the light theme's alphas. A 14% black line on white and a 14%
+     white line on a dim ground are not equally visible — the eye reads dark-on-
+     light edges more readily, so the dim values have to be pushed to match. */
+  --color-line: oklch(100% 0 0 / 0.16);
+  --color-line-inner: oklch(100% 0 0 / 0.09);
+  --color-line-soft: oklch(100% 0 0 / 0.06);
+  --color-line-strong: oklch(100% 0 0 / 0.28);
+
+  /* Inverted: near-white fill, dark label. See note 1 above. */
+  --color-action: oklch(94% 0.005 255);
+  --color-action-hover: oklch(88% 0.006 255);
+  --color-action-ink: oklch(20% 0.01 255);
+
+  /* Accent and status all rise in lightness and lose a little chroma. A saturated
+     mid-tone that sings on white goes muddy on a dim ground, and every one of
+     these is used as TEXT somewhere. */
+  --color-accent: oklch(72% 0.12 224);
+  --color-accent-hover: oklch(78% 0.11 224);
+  --color-accent-text: oklch(20% 0.01 255); /* text ON the accent fill */
+  --color-accent-soft: oklch(72% 0.12 224 / 0.16);
+  --color-accent-ink: oklch(72% 0.12 224);
+
+  --color-success: oklch(74% 0.14 150);
+  --color-success-soft: oklch(74% 0.14 150 / 0.16);
+  --color-success-ink: oklch(74% 0.14 150);
+  --color-warning: oklch(80% 0.13 70);
+  --color-warning-soft: oklch(80% 0.13 70 / 0.16);
+  --color-warning-ink: oklch(80% 0.13 70);
+  --color-danger: oklch(74% 0.155 25);
+  --color-danger-soft: oklch(74% 0.155 25 / 0.14);
+  --color-danger-ink: oklch(74% 0.155 25);
+  --color-idle: oklch(55% 0.014 255);
+
+  /* Dark glass. The barrier keeps its job — guaranteeing contrast for the chrome's
+     own text regardless of what drifts underneath it — it just guarantees it in
+     the other direction. */
+  --color-glass: oklch(26% 0.012 255 / 0.55);
+  --color-glass-barrier: oklch(22% 0.012 255 / 0.3);
+
+  /* Washes toward black, not white. See note 3. */
+  /* Much lighter than the light theme's equivalents, measured rather than mirrored.
+     At the light theme's alphas (0.42/0.30/0.14) this pulled the 30% ground down to
+     roughly 24% and the "dim, not dark" brief was lost in the scrim rather than in
+     the token. The blobs sit at 22% alpha and ink has 10:1 of headroom here, so the
+     scrim has far less work to do on dim than it does on light. */
+  --color-scrim-strong: oklch(18% 0.01 255 / 0.26);
+  --color-scrim-mid: oklch(18% 0.01 255 / 0.18);
+  --color-scrim-soft: oklch(18% 0.01 255 / 0.08);
+
+  /* About a third of the light theme's opacity, and the rings stay because on dim
+     they are the part that actually reads. */
+  --shadow-xs: 0 0 0 1px oklch(0% 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px -1px oklch(0% 0 0 / 0.4), 0 2px 8px oklch(0% 0 0 / 0.22);
+  --shadow-md: 0 2px 4px -2px oklch(0% 0 0 / 0.42), 0 8px 20px -6px oklch(0% 0 0 / 0.3);
+  --shadow-lg: 0 16px 38px -14px oklch(0% 0 0 / 0.55);
+  --shadow-xl: 0 22px 50px -16px oklch(0% 0 0 / 0.62);
+  --shadow-composer: 0 -2px 14px oklch(0% 0 0 / 0.2), 0 10px 28px -8px oklch(0% 0 0 / 0.42);
+
+  /* Light, not dark — see the token's own note. */
+  --color-border-contrast: oklch(82% 0.01 255);
+}
+
+/* The high-contrast escape hatch pushes ink levels FURTHER from the surface, so on
+   dim that means further toward white. Left at the light theme's values it pushed
+   them toward graphite-700 and made `prefers-contrast: more` reduce contrast on this
+   theme, which is the worst possible failure for that query. */
+@media (prefers-contrast: more) {
+  :root[data-theme="dim"] {
+    --color-line: oklch(100% 0 0 / 0.4);
+    --color-line-inner: oklch(100% 0 0 / 0.26);
+    --color-line-strong: oklch(100% 0 0 / 0.62);
+    --color-ink-tertiary: oklch(88% 0.008 255);
+    --color-ink-muted: oklch(74% 0.01 255);
+  }
+}
+
+
+/* -----------------------------------------------------------------------------
+   LAYER 3 — COMPONENT TOKENS
+   Kept out of @theme because these are knobs, not a utility surface. A consumer
+   retunes a single component here without touching the semantic layer.
+   ----------------------------------------------------------------------------- */
+:root {
+  /* Control heights — one vertical rhythm across every interactive element */
+  /* THE WHOLE LADDER MOVED UP 4px. The type scale grew first (13→14 body, 15→16
+     emphasis) and left every control looking tight around its own label — a 36px
+     button holding 14px text has less breathing room than the same button held
+     13px. Buttons are also the product's most-touched objects and were the last
+     thing still sized for the old, smaller type.
+
+     Four pixels, and every step stays on the 4px spacing base rather than landing
+     on a value nothing else in the system uses.
+
+     IT IMPROVES THE TOUCH STORY, which is worth stating because size changes
+     usually cost accessibility rather than buy it. `lg` was exactly on WCAG 2.5.5's
+     44px AAA floor and now clears it; `md` moves from 36 to 40 and is no longer
+     "borderline"; `sm` moves off 32, the value that needed a caveat. See
+     /docs/foundations/accessibility, whose table records all four.
+
+     SHARED WITH INPUTS, SELECTS, TEXTAREAS AND CopyField, deliberately — a button
+     beside an input in a toolbar has to be the same height or the row reads as
+     broken. That coupling is why this is a token and not four numbers in
+     button-variants.ts. */
+  --control-height-sm: 2.25rem; /* 36px */
+  --control-height-md: 2.5rem; /* 40px */
+  --control-height-lg: 3rem; /* 48px — clears the WCAG 2.5.5 44px floor */
+  --control-height-xl: 3.5rem; /* 56px — hero CTA */
+
+  /* 56px, up 4 with the control ladder. The bar's inner pills track
+     --control-height-md, so holding this at 52 while they grew to 40 would have
+     squeezed the island's internal padding from 8px to 6px. Growing both keeps
+     the proportion the design was tuned at. */
+  --nav-height: 3.5rem; /* 56px — a compact centred island, not a bar */
+  --nav-inset: 1rem; /* gap from viewport edge */
+
+  --rail-width-rest: 11.5rem; /* 184px timeline at rest */
+  --rail-width-open: 18.75rem; /* 300px timeline hover-expanded */
+  --rail-media-rest: 2.5rem; /* 40px media strip at rest */
+  --rail-media-open: 5.75rem; /* 92px media strip expanded */
+  --rail-max-height: 18.75rem; /* ~4 rows, then it scrolls */
+
+  --canvas-max-width: 40rem; /* 640px — reading/working column */
+  --page-max-width: 73.75rem; /* 1180px — dashboard content */
+
+  /* Edge weight for elevated surfaces. 1.5px rather than 1px: at 1px a border
+     on a white card reads as a rendering artefact, at 2px it reads heavy in light
+     mode. 1.5px is where a surface starts feeling like a solid object. Internal
+     dividers stay at 1px with --color-line-inner. */
+  --border-width-panel: 1.5px;
+
+  /* ICON STROKE WEIGHT — 1.75, not lucide's default 2.
+     This is the single highest-leverage line in the whole icon system. At 14–18px
+     a 2px stroke is proportionally very heavy: the counters close up, the glyph
+     goes muddy, and it is the main reason a stock lucide set reads as "the default
+     icons" rather than as a chosen one. 1.75 opens the shapes without going wiry
+     the way 1.5 does at these sizes.
+
+     Applied once, in globals.css, via `svg[stroke-width]` — see the note there. */
+  --icon-stroke: 1.75;
+
+  --blur-glass: 44px;
+  /* The other half of the effect, and the part people forget. Backdrop blur alone
+     produces a grey, washed-out panel because averaging many colours desaturates
+     them. Pushing saturation back up is what makes a warm surface behind the bar
+     still read as warm through it — the difference between "frosted glass" and
+     "a translucent grey rectangle". */
+  --saturate-glass: 180%;
+  --meter-thickness: 3px; /* the recurring progress/metric strip */
+}

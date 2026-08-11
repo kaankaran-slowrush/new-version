@@ -1,0 +1,362 @@
+/* =============================================================================
+   model.store — Motion
+   =============================================================================
+
+   Five named motions. Each one exists to communicate a specific state; none is
+   decoration. If you cannot say what a motion tells the user, it does not
+   belong here.
+
+   Every utility class below has its reduced-motion gate built IN, rather than
+   relying on a global override. That is deliberate: a developer cannot
+   accidentally ship an ungated animation by forgetting the media query.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   aurora — ambient background drift
+   Purpose: the navigational chrome in this product is glass (translucent +
+   blurred). Glass over a static flat color is wasted — there is nothing to
+   refract. This slow drift gives the glass something to reveal, which is the
+   entire justification for it existing. 60s, imperceptible if you stare at it.
+   ----------------------------------------------------------------------------- */
+@keyframes aurora-drift {
+  from {
+    background-position:
+      0% 0%,
+      100% 100%,
+      50% 50%;
+  }
+  to {
+    background-position:
+      10% 8%,
+      92% 90%,
+      42% 60%;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   lava-drift-1..4 — the molten ambient flow
+   Purpose: the ambient layer's actual movement. Four large blurred blobs on
+   independent paths; where two drift across each other their alphas compound and
+   the colour deepens, which is what reads as molten rather than as "a gradient
+   that fades". No discrete edges, nothing countable.
+
+   WHY `transform` AND NOT `background-position`
+   The previous implementation animated `background-position`, which forces the
+   browser to re-paint AND re-blur a viewport-sized gradient every frame — the
+   most expensive way to do this. Animating `transform` on an already-blurred
+   layer means the blur is rasterised ONCE and the compositor merely moves the
+   finished texture. Same picture, a fraction of the cost, and it stays off the
+   main thread.
+
+   WHY THESE DURATIONS (53s / 67s / 79s / 97s)
+   All prime, so the combined pattern has a least-common-multiple measured in
+   months. A viewer can never catch the loop, which is the difference between
+   "atmosphere" and "a looping GIF". Each blob also scales slightly, so the mass
+   appears to swell rather than merely slide.
+
+   WHY NO METABALL / GOOEY FILTER
+   The well-known `filter: blur(N) contrast(M)` trick makes blobs merge with hard
+   gooey edges. Rejected on purpose: the contrast crush produces saturated,
+   sharp-edged, countable shapes — far too loud for an operator tool, and it walks
+   straight back into the discrete-orbs cliché this layer exists to avoid.
+   ----------------------------------------------------------------------------- */
+@keyframes lava-drift-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(14%, 9%, 0) scale(1.18);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes lava-drift-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(-17%, -11%, 0) scale(0.92);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+}
+@keyframes lava-drift-3 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  50% {
+    transform: translate3d(11%, -14%, 0) scale(1.22);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+}
+@keyframes lava-drift-4 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(-12%, 13%, 0) scale(0.9);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   aurora-sweep — a soft band crossing the field
+   Purpose: the blobs breathe in place, which reads as "alive" but never as
+   "moving". One wide, heavily-feathered band travelling all the way across is
+   what gives the layer a direction — and direction is most of what separates an
+   atmosphere from a texture.
+
+   131s, and it crosses well past the frame on both sides so it is never seen to
+   turn around. A band that visibly reverses reads as a loop; one that leaves and
+   later returns reads as weather.
+   ----------------------------------------------------------------------------- */
+@keyframes aurora-sweep {
+  from {
+    transform: translate3d(-58%, 0, 0) rotate(-14deg);
+  }
+  to {
+    transform: translate3d(58%, 0, 0) rotate(-14deg);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   grid-drift — the instrument grid
+   Purpose: the one element on this layer that is structural rather than
+   atmospheric. A faint ruled grid is what makes a surface read as an instrument
+   rather than a gradient, and it costs almost nothing in contrast: a 1px line at
+   7% alpha inside a 56px cell barely moves the local average, yet it is
+   unmistakably visible as structure.
+
+   It translates by EXACTLY ONE CELL and no more. That is what makes the loop
+   seamless — at 56px the grid is identical to where it started, so there is no
+   jump and no need for a longer cycle to hide one.
+   ----------------------------------------------------------------------------- */
+@keyframes grid-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(56px, 56px, 0);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   ground-hue — the base colour itself, slowly turning
+   Purpose: every other motion on the ambient layer moves something ON TOP of the
+   ground. This moves the ground. It is the slowest thing on the page by a wide
+   margin — 181s, prime like the rest — and it is meant to be noticed only in the
+   sense that the room is never quite the colour you last left it.
+
+   Hue only. See the @property note in globals.css for why that is what keeps it
+   free of the contrast budget every other ambient layer has to share.
+   ----------------------------------------------------------------------------- */
+@keyframes ground-hue {
+  from {
+    --canvas-hue: 228;
+  }
+  to {
+    --canvas-hue: 282;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   slow-spin — the rotating conic wash
+   Purpose: gives the ambient layer actual movement rather than a gradient that
+   merely breathes in place. A conic gradient CANNOT be moved with
+   `background-position` (there is nothing to offset — it is angular), so the
+   element itself rotates. Which is why the element carrying it must be sized far
+   past the viewport (~160%): a rotating square smaller than its container sweeps
+   its own corners through the frame.
+
+   120s. Slow enough that it never reads as "an animation", only as a room whose
+   light changes if you look away and come back.
+   ----------------------------------------------------------------------------- */
+@keyframes slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   fade-in — content arrival
+   Purpose: one consistent "how things appear" language. Swapping the active
+   turn, revealing a control row, surfacing a banner — all the same fade, so
+   appearance never reads as a jarring cut in one place and smooth in another.
+   ----------------------------------------------------------------------------- */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   rise — staggered entrance
+   Purpose: page load. Sections arrive in reading order with a short stagger so
+   the eye is led down the hierarchy instead of hit with everything at once.
+   ----------------------------------------------------------------------------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   ring — "this is live / working right now"
+   Purpose: an expanding pulse ring on a status dot. Paired ALWAYS with a shape
+   difference (dot vs. triangle) rather than carrying the meaning in color
+   alone — color-only state fails for colorblind users and in screenshots.
+   ----------------------------------------------------------------------------- */
+@keyframes ring-pulse {
+  from {
+    transform: scale(0.5);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   sheen — media generation in progress
+   Purpose: an honest working state for image/video/audio generation, which
+   takes real seconds. A diagonal light sweep across the placeholder, sized to
+   the eventual output so nothing reflows when the real result lands.
+   Explicitly NOT a generic spinner and NOT a three-dot typing indicator.
+   ----------------------------------------------------------------------------- */
+@keyframes sheen {
+  to {
+    background-position: -30% 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   soft-pulse — a breathing indicator
+   Purpose: low-urgency "still going" signal, e.g. the dot in the generation
+   status banner. Gentler than ring-pulse; used where the state is ambient
+   rather than the thing you are watching.
+   ----------------------------------------------------------------------------- */
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* =============================================================================
+   Utilities — reduced-motion gate is built in
+   ============================================================================= */
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim-aurora {
+    animation: aurora-drift var(--duration-ambient) ease-in-out infinite alternate;
+  }
+
+  .anim-slow-spin {
+    animation: slow-spin 120s linear infinite;
+  }
+
+  /* `will-change` is deliberate here and deliberately NOWHERE else in this kit.
+     These four elements animate transform continuously for the whole session, so
+     promoting them once is cheaper than letting the browser guess every frame.
+     The cost is four compositor layers held in memory — acceptable for exactly
+     four elements, which is why it is not a general-purpose utility. */
+  .anim-lava-1,
+  .anim-lava-2,
+  .anim-lava-3,
+  .anim-lava-4 {
+    will-change: transform;
+  }
+  .anim-lava-1 {
+    animation: lava-drift-1 53s ease-in-out infinite;
+  }
+  .anim-lava-2 {
+    animation: lava-drift-2 67s ease-in-out infinite;
+  }
+  .anim-lava-3 {
+    animation: lava-drift-3 79s ease-in-out infinite;
+  }
+  .anim-lava-4 {
+    animation: lava-drift-4 97s ease-in-out infinite;
+  }
+
+  /* Also promoted — these two run continuously for the whole session, same as the
+     blobs. Prime durations again (131s, 89s), so nothing on this layer ever
+     synchronises with anything else on it. */
+  .anim-aurora-sweep,
+  .anim-grid-drift {
+    will-change: transform;
+  }
+  .anim-aurora-sweep {
+    animation: aurora-sweep 131s ease-in-out infinite alternate;
+  }
+  .anim-grid-drift {
+    animation: grid-drift 89s linear infinite;
+  }
+  /* No `will-change`: this animates a registered custom property that feeds a
+     background-color, so there is no transform or opacity to promote. It repaints
+     one full-bleed div, which at 181s is a handful of repaints per minute. */
+  .anim-ground-hue {
+    animation: ground-hue 181s ease-in-out infinite alternate;
+  }
+
+  .anim-fade-in {
+    animation: fade-in var(--duration-normal) ease;
+  }
+
+  .anim-rise {
+    opacity: 0;
+    animation: rise 500ms var(--ease-out-quint) forwards;
+  }
+
+  .anim-ring {
+    animation: ring-pulse 1800ms ease-out infinite;
+  }
+
+  .anim-sheen {
+    animation: sheen 2300ms ease-in-out infinite;
+  }
+
+  .anim-soft-pulse {
+    animation: soft-pulse 1600ms ease-in-out infinite;
+  }
+}
+
+/* Stagger helpers for entrance sequences. Applied alongside .anim-rise.
+   Kept as discrete steps rather than an nth-child rule so the author has to
+   think about the order rather than inheriting an accidental one. */
+.stagger-1 {
+  animation-delay: 20ms;
+}
+.stagger-2 {
+  animation-delay: 80ms;
+}
+.stagger-3 {
+  animation-delay: 140ms;
+}
+.stagger-4 {
+  animation-delay: 200ms;
+}
+.stagger-5 {
+  animation-delay: 260ms;
+}
