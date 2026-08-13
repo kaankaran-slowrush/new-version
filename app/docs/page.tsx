@@ -57,7 +57,7 @@ export default function DocsIntro() {
       >
         <ol className="space-y-5">
           <li className="rounded-2xl bg-surface p-5 shadow-sm">
-            <h3 className="mb-1.5 text-base">1 · Glass is chrome only</h3>
+            <h3 className="mb-1.5 text-base">1 · Glass is chrome only — except under Spatial</h3>
             <p className="text-sm text-ink-secondary">
               Translucent, blurred surfaces are reserved for persistent navigational
               chrome — the topbar, the side rails, the composer. Never body content

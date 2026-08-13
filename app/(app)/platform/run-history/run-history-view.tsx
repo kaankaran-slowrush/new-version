@@ -17,6 +17,8 @@ import {
   Video,
 } from "lucide-react";
 import { CATEGORY_ICON } from "@/lib/icons";
+import { ProceduralCover } from "@/components/app/procedural-cover";
+import type { Modality } from "@/lib/mock/agents";
 import { Icon } from "@/components/primitives/icon";
 import {
   Badge,
@@ -51,6 +53,18 @@ import {
   type RunStatus,
 } from "@/lib/mock/platform";
 import { cn } from "@/lib/cn";
+
+/* A run's category names what went IN and what came OUT ("Image to Video"), and the
+   cover has to represent the output — a video run shows a video glyph even though
+   an image went into it. So this maps to the right-hand side, not the left. Text to
+   Speech is the audio one, which is what makes the grid draw a waveform for it. */
+const MODALITY_OF_CATEGORY: Record<RunCategory, Modality> = {
+  "Image to Image": "image",
+  "Text to Image": "image",
+  "Image to Video": "video",
+  "Text to Video": "video",
+  "Text to Speech": "audio",
+};
 
 /* =============================================================================
    Run history
@@ -386,14 +400,35 @@ export function RunHistoryView({
                     is compact — no placeholder-shaped hole. */}
                 {run.hasPreview && (
                   <div className="relative aspect-square bg-surface-sunken">
-                    <div
-                      aria-hidden
-                      className="absolute inset-0 bg-[radial-gradient(120%_90%_at_25%_20%,oklch(94%_0.03_202)_0%,transparent_55%),linear-gradient(160deg,oklch(97.5%_0.005_75),oklch(88.5%_0.008_75))]"
-                    />
+                    {run.preview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element --
+                         fixture asset at a known /public path; the optimiser has
+                         nothing to add and would make this a client boundary. */
+                      <img
+                        src={run.preview}
+                        alt={`Output of run ${run.id}`}
+                        className="absolute inset-0 size-full object-cover"
+                      />
+                    ) : (
+                      /* THE SHARED COVER, not a third hand-written copy of the
+                         wash. This literal was one of the two ProceduralCover's own
+                         header note listed as unadopted, and it was a pale gradient
+                         with no hue variation — every coverless run in the grid
+                         looked identical, and on a dark theme they all read as
+                         bright holes. `seed` is the run id, so a run's cover is now
+                         recognisably the same object it is elsewhere. */
+                      <ProceduralCover
+                        seed={run.id}
+                        modality={MODALITY_OF_CATEGORY[run.category]}
+                        height="sm"
+                        tone={run.status === "failed" ? "danger" : "accent"}
+                        className="absolute inset-0 h-auto"
+                      />
+                    )}
                     <Badge
                       variant="neutral"
                       size="sm"
-                      className="absolute top-2.5 left-2.5 bg-surface/85"
+                      className="absolute top-2.5 left-2.5 bg-chip-over-media"
                     >
                       <Icon of={CATEGORY_ICON[run.category]} />
                       {run.category}

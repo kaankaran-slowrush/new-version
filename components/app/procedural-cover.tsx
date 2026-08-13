@@ -3,6 +3,7 @@ import { Icon } from "@/components/primitives/icon";
 import { MODALITY_ICON } from "@/lib/icons";
 import type { Modality } from "@/lib/mock/agents";
 import { cn } from "@/lib/cn";
+import { Waveform } from "./waveform";
 
 /* =============================================================================
    ProceduralCover — the kit's ONE stand-in for generated media
@@ -42,10 +43,17 @@ import { cn } from "@/lib/cn";
    range guarantees neither. The mixing steps below are what stop `t1` and `t2` from
    landing in the same bucket every time.
 
-   ADOPTED BY: ModelCard, the home page proof strip.
-   NOT YET: `components/app/session-canvas.tsx` and the run-history grid view still
-   carry their own literals. They are the remaining adopters — this note is here so
-   the claim stays accurate rather than aspirational.
+   ADOPTED BY ALL FIVE, finally: ModelCard, the home page proof strip, the session
+   canvas, the session rail's media strip, and the run-history grid. This note used
+   to list the last two as outstanding; they are not any more, and each of the three
+   literals it replaced had drifted the same two ways — no hue variation, so every
+   coverless item on that surface looked like the same object, and hard-coded
+   near-white stops, which read as a bright hole on either dark theme.
+
+   AUDIO NEVER REACHES THE WASH. It has a real representation of its own — see
+   `components/app/waveform.tsx` — so the `modality === "audio"` branch below sits
+   ABOVE the generated fallback. The ordering is the rule: the artifact's own
+   picture, then a supplied asset, then the fallback.
    ============================================================================= */
 
 const coverVariants = cva("relative shrink-0 overflow-hidden bg-surface-sunken", {
@@ -120,6 +128,9 @@ export interface ProceduralCoverProps
   tone?: "accent" | "danger";
   /** Real artwork, when a consuming app has it. Wins over the generated cover. */
   src?: string;
+  /** Audio only, as "m:ss". Passed straight to the waveform, which derives its bar
+      count from it — so a 0:08 clip and a 2:30 clip do not draw the same shape. */
+  duration?: string;
   /** Overlay slot — badges, status marks, a play button. Positioned by the caller,
       because what belongs on a cover is the caller's business, not this file's. */
   children?: React.ReactNode;
@@ -133,6 +144,7 @@ export function ProceduralCover({
   dim = false,
   tone = "accent",
   src,
+  duration,
   children,
   ...props
 }: ProceduralCoverProps) {
@@ -143,16 +155,41 @@ export function ProceduralCover({
      not an emergency — the badge on top already says so. */
   const a1 = dim ? 0.12 : danger ? 0.34 : 0.5;
   const a2 = dim ? 0.09 : danger ? 0.26 : 0.4;
-  const baseL1 = dim ? 96 : danger ? 95 : 93;
-  const baseL2 = dim ? 92 : danger ? 88 : 83;
+  /* THE TWO BASE STOPS COME FROM TOKENS, not from literals, because they encode
+     "roughly the lightness of the page's own surfaces" — and that is exactly the
+     thing a theme changes. Written as 93/83 they were correct for the light theme
+     and produced a pale rectangle on the two dark ones. On the spatial theme, where
+     there is no card edge around the cover, a pale rectangle does not read as
+     generic cover art; it reads as a hole in the plane.
+
+     `--cover-l-dir` carries the SIGN of the variant offsets, and it has to exist:
+     "weaker" means lighter on a light ground and darker on a dark one, so `danger`
+     moving +2/+5 is right in one theme and backwards in the other. One token, and
+     the three variants stay a single expression instead of a per-theme table. */
+  const d1 = dim ? 3 : danger ? 2 : 0;
+  const d2 = dim ? 9 : danger ? 5 : 0;
+  const stop = (base: string, delta: number) =>
+    delta === 0 ? `var(${base})` : `calc(var(${base}) + ${delta}% * var(--cover-l-dir))`;
 
   return (
-    <div className={cn(coverVariants({ height }), className)} {...props}>
+    /* `data-media-frame` is the hook for the one rule the spatial theme needs
+       here: media has to draw its own edge under that theme, because the Card that
+       used to provide one paints nothing. On light and dim the attribute does
+       nothing at all — see the rule in app/globals.css. */
+    <div data-media-frame className={cn(coverVariants({ height }), className)} {...props}>
       {src ? (
         /* eslint-disable-next-line @next/next/no-img-element -- the kit ships no
            images, so next/image's optimiser has nothing to do here. This branch
            exists only so a consuming app can supply real artwork. */
         <img src={src} alt="" className="size-full object-cover" />
+      ) : modality === "audio" ? (
+        /* AUDIO IS NOT A MISSING IMAGE. It has a picture of its own, so it never
+           reaches the generated wash below — a waveform is what the artifact
+           actually looks like, and it carries the clip's real duration besides.
+           See components/app/waveform.tsx. Kept above the wash branch rather than
+           inside it so the ordering states the rule: real representation first,
+           then the asset, then the fallback. */
+        <Waveform seed={seed} duration={duration} />
       ) : (
         <>
           <div
@@ -171,7 +208,7 @@ export function ProceduralCover({
               background: `
                 radial-gradient(130% 110% at 8% -5%, oklch(48% 0.16 ${hue} / ${a1}) 0%, transparent 60%),
                 radial-gradient(100% 90% at 95% 105%, oklch(68% 0.15 ${hue + 26} / ${a2}) 0%, transparent 58%),
-                linear-gradient(155deg, oklch(${baseL1}% 0.04 ${hue}) 0%, oklch(${baseL2}% 0.07 ${hue + 18}) 100%)`,
+                linear-gradient(155deg, oklch(${stop("--cover-l1", d1)} 0.04 ${hue}) 0%, oklch(${stop("--cover-l2", d2)} 0.07 ${hue + 18}) 100%)`,
             }}
           />
           <div

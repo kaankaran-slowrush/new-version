@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AmbientBackground } from "@/components/chrome/ambient-background";
+import { SpatialBackdrop } from "@/components/chrome/spatial-backdrop";
 import { fontVariables } from "./fonts";
 import { cn } from "@/lib/cn";
 import "./globals.css";
@@ -44,7 +45,13 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("model-store-theme");document.documentElement.dataset.theme=t==="dim"?"dim":"light"}catch(e){document.documentElement.dataset.theme="light"}`,
+            /* The three names are duplicated from THEMES in theme-toggle.tsx, and
+               they have to be: this runs before any module is evaluated, which is
+               the entire reason it is an inline string. An unrecognised stored value
+               falls back to light rather than being trusted — the attribute selects
+               a whole palette, so a stale or hand-edited localStorage entry must not
+               be able to put the document into a theme that no longer exists. */
+            __html: `try{var t=localStorage.getItem("model-store-theme");document.documentElement.dataset.theme=t==="dim"||t==="spatial"?t:"light"}catch(e){document.documentElement.dataset.theme="light"}`,
           }}
         />
       </head>
@@ -58,7 +65,11 @@ export default function RootLayout({
         context the fixed ambient layer would paint over the page.
       */}
       <body className="min-h-dvh">
+        {/* Two backdrops, one stacking slot, mutually exclusive by CSS rather than
+            by a conditional render — see SpatialBackdrop for why that is what keeps
+            the photograph from being downloaded on the other two themes. */}
         <AmbientBackground />
+        <SpatialBackdrop />
         <div className="relative z-(--z-base)">{children}</div>
       </body>
     </html>

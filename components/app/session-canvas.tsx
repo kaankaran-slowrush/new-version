@@ -17,6 +17,7 @@ import { Card, CardFooter, ErrorState, MeterBar } from "@/components/patterns";
 import type { Modality } from "@/lib/mock/agents";
 import type { Turn } from "@/lib/mock/sessions";
 import { cn } from "@/lib/cn";
+import { ProceduralCover } from "./procedural-cover";
 
 /* =============================================================================
    SessionCanvas — the center stage of the session workspace
@@ -58,16 +59,36 @@ const MODALITY_LABEL: Record<Modality, string> = {
   audio: "Audio",
 };
 
-/** Stand-in for real generated media. Deliberately abstract — a fake photo would
-    make the kit look like it does more than it does. */
-function MediaPlaceholder({ className }: { className?: string }) {
+/* The rendered frame when the turn has one, the shared cover when it does not.
+   Both are needed and neither is redundant: a completed image turn should show the
+   image, and every other state — in flight, failed, or a fixture with no asset —
+   still needs a surface that reads as media rather than as a hole.
+
+   THE LOCAL `MediaPlaceholder` IS GONE. It was a hand-written copy of
+   ProceduralCover's wash with two differences that both turned out to be bugs: no
+   hue variation, so every coverless turn in a session looked like the same object,
+   and hard-coded near-white stops, so on a dark theme it was a bright rectangle
+   rather than a surface. ProceduralCover was already the shared answer and its own
+   header note listed this file as the last holdout. It no longer is.
+
+   An audio turn does not come through here at all — ProceduralCover draws it a real
+   waveform from its duration, which is what the artifact actually looks like. */
+function MediaFrame({ turn, alt }: { turn: Turn; alt: string }) {
+  if (turn.image) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element -- fixture asset from
+         /public at a known path; next/image's optimiser has nothing to add and
+         would pull a client boundary into a server-rendered canvas. */
+      <img src={turn.image} alt={alt} className="absolute inset-0 size-full object-cover" />
+    );
+  }
   return (
-    <div
-      aria-hidden
-      className={cn(
-        "absolute inset-0 bg-[radial-gradient(120%_90%_at_25%_20%,oklch(94%_0.03_202)_0%,transparent_55%),radial-gradient(100%_80%_at_80%_75%,oklch(94.2%_0.007_75)_0%,transparent_60%),linear-gradient(160deg,oklch(97.5%_0.005_75),oklch(88.5%_0.008_75))]",
-        className,
-      )}
+    <ProceduralCover
+      seed={turn.id}
+      modality={turn.modality}
+      duration={turn.duration}
+      tone={turn.state === "failed" ? "danger" : "accent"}
+      className="absolute inset-0 h-auto"
     />
   );
 }
@@ -186,7 +207,10 @@ function GeneratingResult({ turn }: { turn: Turn }) {
             turn.aspect === "1x1" ? "aspect-square" : "aspect-video",
           )}
         >
-          <MediaPlaceholder />
+          {/* GENERATING KEEPS NO COVER, deliberately — not even a generated one.
+              A picture here would claim an output that does not exist yet, which is
+              precisely what the sheen and the stage label are there to say honestly
+              instead. The sunken ground on the parent is the whole surface. */}
           {/* The sweep. Self-gated on prefers-reduced-motion. */}
           <span className="anim-sheen absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.55)_48%,transparent_66%)] bg-[length:220%_100%] bg-[position:130%_0]" />
           {/* Static structure so this still reads as "working" in a screenshot
@@ -194,7 +218,7 @@ function GeneratingResult({ turn }: { turn: Turn }) {
           <span className="relative text-ink-tertiary opacity-55 [&_svg]:size-8">
             <Icon of={MODALITY_ICON[turn.modality]} />
           </span>
-          <span className="relative rounded-full bg-surface/85 px-3 py-1.5 font-mono text-sm text-ink-secondary">
+          <span className="relative rounded-full bg-chip-over-media px-3 py-1.5 font-mono text-sm text-ink-secondary">
             {turn.stage}…
           </span>
         </div>
@@ -271,8 +295,8 @@ export function SessionCanvas({
 
       {turn.state === "done" && turn.modality === "image" && (
         <Card variant="footerStrip" className="overflow-hidden">
-          <div className="relative aspect-square bg-surface-sunken">
-            <MediaPlaceholder />
+          <div data-media-frame className="relative aspect-square bg-surface-sunken">
+            <MediaFrame turn={turn} alt={turn.prompt} />
           </div>
           <ResultActions
             onRegenerate={onRegenerate}
@@ -287,11 +311,11 @@ export function SessionCanvas({
 
       {turn.state === "done" && turn.modality === "video" && (
         <Card variant="footerStrip" className="overflow-hidden">
-          <div className="relative grid aspect-video place-items-center bg-surface-sunken">
-            <MediaPlaceholder />
+          <div data-media-frame className="relative grid aspect-video place-items-center bg-surface-sunken">
+            <MediaFrame turn={turn} alt={turn.prompt} />
             <button
               aria-label="Play video"
-              className="relative grid size-15 place-items-center rounded-full bg-surface/92 shadow-md transition-transform duration-(--duration-instant) active:scale-95"
+              className="relative grid size-15 place-items-center rounded-full bg-control-over-media shadow-md transition-transform duration-(--duration-instant) active:scale-95"
             >
               <Play className="size-5 translate-x-0.5" fill="currentColor" />
             </button>

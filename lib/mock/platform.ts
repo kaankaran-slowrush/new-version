@@ -33,20 +33,23 @@ export interface PlatformRun {
   /** Whether a visual thumbnail exists. Text/audio runs have none — the grid
       view must not reserve a large empty box for these. */
   hasPreview: boolean;
+  /** The frame itself, when `hasPreview`. Fixture asset — see
+      public/artifacts/CREDITS.md. Absent means the grid falls back to a wash. */
+  preview?: string;
   /** Present for API-originated runs, hidden unless "Show API calls" is on. */
   viaApi?: boolean;
 }
 
 export const PLATFORM_RUNS: PlatformRun[] = [
-  { id: "74040", category: "Image to Image", target: "Your Soulmate", isPipeline: true, status: "completed", relativeTime: "9 days ago", durationLabel: "9s", costUsd: 0.038, hasPreview: true },
-  { id: "73496", category: "Image to Image", target: "Your Soulmate", isPipeline: true, status: "completed", relativeTime: "16 days ago", durationLabel: "16s", costUsd: 0.042, hasPreview: true },
-  { id: "72955", category: "Image to Video", target: "Social Media Heli", isPipeline: true, status: "completed", relativeTime: "23 days ago", durationLabel: "1m 22s", costUsd: 0.215, hasPreview: true },
+  { id: "74040", category: "Image to Image", target: "Your Soulmate", isPipeline: true, status: "completed", relativeTime: "9 days ago", durationLabel: "9s", costUsd: 0.038, hasPreview: true, preview: "/artifacts/cup-studio.jpg" },
+  { id: "73496", category: "Image to Image", target: "Your Soulmate", isPipeline: true, status: "completed", relativeTime: "16 days ago", durationLabel: "16s", costUsd: 0.042, hasPreview: true, preview: "/artifacts/heels-red.jpg" },
+  { id: "72955", category: "Image to Video", target: "Social Media Heli", isPipeline: true, status: "completed", relativeTime: "23 days ago", durationLabel: "1m 22s", costUsd: 0.215, hasPreview: true, preview: "/artifacts/interior.jpg" },
   { id: "72874", category: "Text to Video", target: "xAI: Grok Imagine Video", isPipeline: false, status: "completed", relativeTime: "24 days ago", durationLabel: "1m 11s", costUsd: 0.35, hasPreview: false, viaApi: true },
   { id: "72873", category: "Text to Video", target: "xAI: Grok Imagine Video", isPipeline: false, status: "completed", relativeTime: "24 days ago", durationLabel: "1m 11s", costUsd: 0.35, hasPreview: false },
   { id: "72872", category: "Text to Video", target: "xAI: Grok Imagine Video", isPipeline: false, status: "completed", relativeTime: "24 days ago", durationLabel: "1m 16s", costUsd: 0.35, hasPreview: false },
   { id: "72871", category: "Text to Video", target: "xAI: Grok Imagine Video", isPipeline: false, status: "failed", relativeTime: "24 days ago", durationLabel: null, costUsd: 0, hasPreview: false },
   { id: "72870", category: "Text to Speech", target: "ElevenLabs v3", isPipeline: false, status: "running", relativeTime: "just now", durationLabel: null, costUsd: 0.09, hasPreview: false },
-  { id: "72869", category: "Text to Image", target: "Flux Pro 1.1", isPipeline: false, status: "completed", relativeTime: "25 days ago", durationLabel: "7s", costUsd: 0.07, hasPreview: true, viaApi: true },
+  { id: "72869", category: "Text to Image", target: "Flux Pro 1.1", isPipeline: false, status: "completed", relativeTime: "25 days ago", durationLabel: "7s", costUsd: 0.07, hasPreview: true, preview: "/artifacts/canal.jpg", viaApi: true },
 ];
 
 export const RUN_TOTAL_PAGES = 34;

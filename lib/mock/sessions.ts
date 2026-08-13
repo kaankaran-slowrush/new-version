@@ -12,6 +12,15 @@ export interface Turn {
   state: TurnState;
   /** Present on completed text turns. */
   text?: string;
+  /**
+   * The rendered frame, on completed image and video turns only.
+   *
+   * Deliberately absent on t4 and t5. A failed turn produced nothing and a
+   * generating one has not produced it yet, so an image on either would make the
+   * canvas claim an output that does not exist — which is exactly the thing the
+   * failed and in-flight treatments are there to say honestly.
+   */
+  image?: string;
   /** Aspect for media turns, drives the placeholder footprint. */
   aspect?: "1x1" | "16x9";
   /** For audio turns. */
@@ -34,9 +43,10 @@ export const TURNS: Turn[] = [
     id: "t1",
     modality: "image",
     prompt:
-      "A minimalist product shot of a ceramic coffee cup on a marble counter, soft morning light",
+      "A ceramic cup on a red seamless, hard key from the left, one clean shadow",
     relativeTime: "12m ago",
     state: "done",
+    image: "/artifacts/cup-studio.jpg",
     aspect: "1x1",
   },
   {
@@ -224,6 +234,18 @@ export interface RecentArtifact {
   relativeTime: string;
   state: TurnState;
   duration?: string;
+  /**
+   * The rendered artifact, when there is one to render.
+   *
+   * ONLY image and video turns carry this, and that is the rule rather than the
+   * state of the fixture. A failed turn produced nothing, so a picture on it
+   * would be a lie about what happened. A generating turn has not produced it
+   * yet — the sheen is the correct visual and replacing it with a photo would
+   * make a loading state look finished. Audio and text have outputs, but neither
+   * of them is a picture: see `ProceduralCover`, which draws a waveform for one
+   * and sets the text for the other.
+   */
+  image?: string;
 }
 
 export const RECENT_ARTIFACTS: RecentArtifact[] = [
@@ -232,9 +254,10 @@ export const RECENT_ARTIFACTS: RecentArtifact[] = [
     sessionId: "cup-product-shot",
     modality: "image",
     prompt:
-      "A minimalist product shot of a ceramic coffee cup on a marble counter, soft morning light",
+      "A ceramic cup on a red seamless, hard key from the left, one clean shadow",
     relativeTime: "12m ago",
     state: "done",
+    image: "/artifacts/cup-studio.jpg",
   },
   {
     id: "a2",
@@ -249,10 +272,11 @@ export const RECENT_ARTIFACTS: RecentArtifact[] = [
     id: "a3",
     sessionId: "launch-teaser",
     modality: "video",
-    prompt: "Four 9:16 cuts with the logo held on the last frame",
+    prompt: "Four 9:16 cuts on the same red, logo held on the last frame",
     relativeTime: "2h ago",
     state: "done",
     duration: "0:12",
+    image: "/artifacts/heels-red.jpg",
   },
   {
     /* THE FAILURE. Exactly one, and not first — buried enough not to lead the
@@ -268,9 +292,10 @@ export const RECENT_ARTIFACTS: RecentArtifact[] = [
     id: "a5",
     sessionId: "hero-explorations",
     modality: "image",
-    prompt: "Wide desaturated interiors, single light source, no people in frame",
+    prompt: "Wide desaturated interior, single light source, no people in frame",
     relativeTime: "3 days ago",
     state: "done",
+    image: "/artifacts/interior.jpg",
   },
   {
     id: "a6",
@@ -294,9 +319,10 @@ export const RECENT_ARTIFACTS: RecentArtifact[] = [
     sessionId: "hero-explorations",
     modality: "image",
     prompt:
-      "Same room at dusk, warmer key light, and push the grain a little further than the last one so it reads as film rather than digital",
+      "Same palette, but outside — the street the building sits on, late afternoon, and push the grain further than the last one so it reads as film rather than digital",
     relativeTime: "3 days ago",
     state: "done",
+    image: "/artifacts/canal.jpg",
   },
   {
     /* Still running, so the in-flight treatment is exercised on the home page. */

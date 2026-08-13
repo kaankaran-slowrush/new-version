@@ -24,6 +24,10 @@ export const DOCS_NAV: DocNavGroup[] = [
       { label: "Typography", href: "/docs/foundations/typography" },
       { label: "Spacing & radius", href: "/docs/foundations/spacing" },
       { label: "Elevation & glass", href: "/docs/foundations/elevation" },
+      /* Directly after Elevation, not at the end of the group. Spatial is the one
+         theme that inverts Elevation's central rule, so it has to be read next to
+         it — filed under Motion it would look like an unrelated effect. */
+      { label: "Spatial", href: "/docs/foundations/spatial" },
       { label: "Motion", href: "/docs/foundations/motion" },
       { label: "Accessibility", href: "/docs/foundations/accessibility" },
     ],

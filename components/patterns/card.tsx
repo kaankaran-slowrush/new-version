@@ -12,7 +12,7 @@ import { headerMetaVariants, headerTitleVariants } from "./section-header";
 
    UX NOTES
    --------
-   • OPAQUE, always. `bg-surface` (pure white) against the warm `canvas` ground
+   • OPAQUE ON LIGHT AND DIM. `bg-surface` against the `canvas` ground
      is what separates "content" from "chrome" in this product. Glass is for
      navigational chrome only — a card is body content, and translucency behind
      data-dense text costs legibility for an effect nobody asked for.

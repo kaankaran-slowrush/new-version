@@ -94,13 +94,13 @@ export function ModelCard({
           <Badge
             variant={model.status === "deprecated" ? "danger" : "warning"}
             size="sm"
-            className="absolute top-2.5 left-2.5 bg-surface/85"
+            className="absolute top-2.5 left-2.5 bg-chip-over-media"
           >
             {model.status === "deprecated" ? "Deprecated" : "Limited capacity"}
           </Badge>
         ) : null}
         {model.isFast ? (
-          <Badge variant="neutral" size="sm" className="absolute top-2.5 right-2.5 bg-surface/85">
+          <Badge variant="neutral" size="sm" className="absolute top-2.5 right-2.5 bg-chip-over-media">
             Fast
           </Badge>
         ) : null}

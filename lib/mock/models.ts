@@ -60,6 +60,14 @@ export interface ModelEntry {
    * a URL IS present, ModelCard uses it instead of the procedural cover — so
    * dropping in real artwork later is a data change, not a code change.
    */
+  /**
+   * A SAMPLE OF THE KIND OF THING THIS MODALITY PRODUCES — not this vendor's
+   * output, and the distinction matters. These are stock fixtures (see
+   * public/artifacts/CREDITS.md); attributing them to a named third-party model
+   * would be a claim about someone else's product that this repository is in no
+   * position to make. Text models carry none: a picture on a text model would say
+   * the wrong thing about what it does.
+   */
   coverUrl?: string;
   status: "available" | "limited" | "deprecated";
 }
@@ -89,6 +97,7 @@ export const MODELS: ModelEntry[] = [
     name: "Auto",
     vendor: "model.store",
     modality: "image",
+    coverUrl: "/artifacts/cup-studio.jpg",
     pricePerRun: 0.04,
     description: "Routes each request to the best available image model for the prompt.",
     capabilities: ["Text to image", "Image to image"],
@@ -101,6 +110,7 @@ export const MODELS: ModelEntry[] = [
     name: "GPT Image 1",
     vendor: "OpenAI",
     modality: "image",
+    coverUrl: "/artifacts/camera-white.jpg",
     pricePerRun: 0.05,
     description: "Strong prompt adherence and legible text rendering inside images.",
     capabilities: ["Text to image", "Image to image"],
@@ -113,6 +123,7 @@ export const MODELS: ModelEntry[] = [
     name: "Imagen 4",
     vendor: "Google",
     modality: "image",
+    coverUrl: "/artifacts/components.jpg",
     pricePerRun: 0.06,
     description: "Photographic realism with reliable human anatomy and lighting.",
     capabilities: ["Text to image"],
@@ -125,6 +136,7 @@ export const MODELS: ModelEntry[] = [
     name: "Flux Pro 1.1",
     vendor: "Black Forest Labs",
     modality: "image",
+    coverUrl: "/artifacts/cactus-sphere.jpg",
     pricePerRun: 0.07,
     description: "The most controllable of the image models — four modes in one endpoint.",
     capabilities: ["Text to image", "Image to image", "Image to text", "Text to avatar"],
@@ -138,6 +150,7 @@ export const MODELS: ModelEntry[] = [
     name: "Krea 2 Medium",
     vendor: "Krea",
     modality: "image",
+    coverUrl: "/artifacts/kit-flatlay.jpg",
     pricePerRun: 0.03,
     description: "Balanced, cost-efficient image generation for everyday production.",
     capabilities: ["Image to image", "Text to avatar"],
@@ -150,6 +163,7 @@ export const MODELS: ModelEntry[] = [
     name: "Krea 2 Medium Turbo",
     vendor: "Krea",
     modality: "image",
+    coverUrl: "/artifacts/mug-lemon.jpg",
     pricePerRun: 0.02,
     description: "A distilled, speed-focused build of Krea 2 Medium. Fewer steps, less detail.",
     capabilities: ["Text to image", "Image to image"],
@@ -163,6 +177,7 @@ export const MODELS: ModelEntry[] = [
     name: "Krea 2 Large",
     vendor: "Krea",
     modality: "image",
+    coverUrl: "/artifacts/portrait-field.jpg",
     pricePerRun: 0.09,
     description: "High-capability image generation. More detail, more control, bigger creativity.",
     capabilities: ["Text to image", "Image to image"],
@@ -175,6 +190,7 @@ export const MODELS: ModelEntry[] = [
     name: "SDXL Turbo",
     vendor: "Stability AI",
     modality: "image",
+    coverUrl: "/artifacts/desk-flatlay.jpg",
     pricePerRun: 0.01,
     description: "Superseded by Krea 2 Medium Turbo. Kept only for reproducing older runs.",
     capabilities: ["Text to image"],
@@ -188,6 +204,7 @@ export const MODELS: ModelEntry[] = [
     name: "Auto",
     vendor: "model.store",
     modality: "video",
+    coverUrl: "/artifacts/heels-red.jpg",
     pricePerRun: 0.32,
     description: "Routes each request to the best available video model for the prompt.",
     capabilities: ["Text to video", "Image to video"],
@@ -200,6 +217,7 @@ export const MODELS: ModelEntry[] = [
     name: "Sora 2",
     vendor: "OpenAI",
     modality: "video",
+    coverUrl: "/artifacts/canal.jpg",
     pricePerRun: 0.55,
     description: "The most cinematic option. Long shots, coherent motion, real camera language.",
     capabilities: ["Text to video", "Image to video"],
@@ -212,6 +230,7 @@ export const MODELS: ModelEntry[] = [
     name: "Veo 3",
     vendor: "Google",
     modality: "video",
+    coverUrl: "/artifacts/peak-clouds.jpg",
     pricePerRun: 0.48,
     description: "Native audio alongside video, which nothing else in the catalogue does.",
     capabilities: ["Text to video", "Image to video"],
@@ -224,6 +243,7 @@ export const MODELS: ModelEntry[] = [
     name: "Veo 3.1 Lite",
     vendor: "Google",
     modality: "video",
+    coverUrl: "/artifacts/interior.jpg",
     pricePerRun: 0.19,
     description: "Google's most cost-effective video model, designed for high-volume use.",
     capabilities: ["Image to video", "Text to video"],
@@ -236,6 +256,7 @@ export const MODELS: ModelEntry[] = [
     name: "Grok Imagine Video 1.5",
     vendor: "xAI",
     modality: "video",
+    coverUrl: "/artifacts/photographer.jpg",
     pricePerRun: 0.28,
     description: "An image-to-video model from xAI. More imagination, more control.",
     capabilities: ["Text to video", "Image to video"],
@@ -248,6 +269,7 @@ export const MODELS: ModelEntry[] = [
     name: "HappyHorse 1.1",
     vendor: "Alibaba",
     modality: "video",
+    coverUrl: "/artifacts/portrait-back.jpg",
     pricePerRun: 0.22,
     description: "A video generation model from Alibaba, tuned for stylised motion.",
     capabilities: ["Image to video", "Text to video"],
@@ -259,6 +281,7 @@ export const MODELS: ModelEntry[] = [
     name: "Model Store: Ref Video Generic",
     vendor: "model.store",
     modality: "video",
+    coverUrl: "/artifacts/cup-studio.jpg",
     pricePerRun: 0.25,
     description: "Give it a reference clip and a full-body image; it maps the motion onto the subject.",
     capabilities: ["Image to video"],
@@ -276,6 +299,7 @@ export const MODELS: ModelEntry[] = [
     name: "Stable Video Diffusion XT 1.1 (Extended Context)",
     vendor: "Stability AI",
     modality: "video",
+    coverUrl: "/artifacts/canal.jpg",
     pricePerRun: 0.4,
     description: "Under capacity pressure — queue times are currently unpredictable.",
     capabilities: ["Image to video"],

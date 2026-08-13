@@ -286,7 +286,12 @@ export default function HomePage() {
               <Link
                 key={artifact.id}
                 href={`/agents/${artifact.sessionId}`}
-                className="w-64 shrink-0"
+                /* `block` is load-bearing. An <a> is display:inline, so `w-64` on
+                   it was silently doing nothing — the tile got its width from the
+                   flex container instead, which worked only while the cover had no
+                   intrinsic width to argue with. The moment a real 1200px image
+                   went in, the tile blew out to the width of the photograph. */
+                className="block w-64 shrink-0"
               >
                 <Card interactive elevation="sm" className="h-full overflow-hidden p-0">
                 <ProceduralCover
@@ -294,6 +299,13 @@ export default function HomePage() {
                   modality={artifact.modality}
                   height="lg"
                   tone={failed ? "danger" : "accent"}
+                  /* Only completed image and video turns carry one. A failed
+                     artifact produced nothing and a running one has not finished,
+                     so both keep the generated wash — see RecentArtifact.image. */
+                  src={artifact.image}
+                  /* Audio has no `image` and never will — it draws a waveform from
+                     this instead, which is what the clip actually looks like. */
+                  duration={artifact.duration}
                 >
                   {/* A job still in flight gets the sheen the session canvas uses
                       for the same state, so "working" looks the same everywhere. */}
@@ -306,7 +318,7 @@ export default function HomePage() {
                   <Badge
                     variant="neutral"
                     size="sm"
-                    className="absolute top-2.5 left-2.5 bg-surface/85"
+                    className="absolute top-2.5 left-2.5 bg-chip-over-media"
                   >
                     <Icon of={MODALITY_ICON[artifact.modality]} />
                     {MODALITY_LABEL[artifact.modality]}
@@ -314,7 +326,7 @@ export default function HomePage() {
                   {/* The failure rides on the cover rather than sitting in the
                       footer. It is the one thing about a tile worth knowing before
                       you read the prompt. */}
-                  <span className="absolute top-2.5 right-2.5 rounded-full bg-surface/85 px-2 py-1">
+                  <span className="absolute top-2.5 right-2.5 rounded-full bg-chip-over-media px-2 py-1">
                     {failed ? (
                       <StatusMark status="error" label="Failed" showLabel />
                     ) : running ? (

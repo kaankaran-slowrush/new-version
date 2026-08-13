@@ -133,6 +133,11 @@ export function AmbientBackground() {
   return (
     <div
       aria-hidden
+      /* The marker SpatialBackdrop's CSS switch keys off. Adds nothing visually and
+         changes nothing for light or dim; it exists so one rule in globals.css can
+         make the two backdrops mutually exclusive without either component
+         knowing the other is there. */
+      data-ambient
       className="pointer-events-none fixed inset-0 z-(--z-ambient) overflow-hidden"
     >
       {/* 0 · THE GROUND ITSELF, and it is the only layer that is fully opaque.

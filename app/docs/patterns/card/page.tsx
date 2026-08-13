@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MoreHorizontal, Sparkles } from "lucide-react";
 import {
   Card,
@@ -29,7 +30,7 @@ export default function CardDocs() {
       <DocHeader
         eyebrow="Patterns"
         title="Card & surfaces"
-        lede="Card is the default container for a discrete unit of content, and it is opaque. GlassPanel is the exception, licensed for navigational chrome only. Getting the boundary between those two right is most of what makes this system read as considered."
+        lede="Card is the default container for a discrete unit of content, and on the light and dim themes it is opaque. GlassPanel is the exception, licensed for navigational chrome only. Getting the boundary between those two right is most of what makes this system read as considered."
       />
 
       <DocSection
@@ -65,7 +66,7 @@ export default function CardDocs() {
               "Card",
               "div",
               "18px radius, 24px padding",
-              "bg-surface (pure white), text-ink, shadow-sm",
+              "bg-surface, text-ink, shadow-sm \u2014 all three resolve to nothing under Spatial",
             ],
             [
               "CardHeader",
@@ -486,11 +487,20 @@ export default function CardDocs() {
 
         <UXNote title="The three glass rules">
           <p>
-            <strong>1 · Navigational chrome only.</strong> Topbar, side rails, composer,
-            floating command surfaces. Never body content, never a data-dense card, never
-            anything a user reads for longer than a glance. If the thing holds
-            information rather than navigation, it is a <Code>Card</Code> — reading beats
-            effect, every time.
+            <strong>1 · Navigational chrome only \u2014 except under Spatial.</strong>{" "}
+            Topbar, side rails, composer, floating command surfaces. Never body content,
+            never a data-dense card, never anything a user reads for longer than a
+            glance. If the thing holds information rather than navigation, it is a{" "}
+            <Code>Card</Code> \u2014 reading beats effect, every time.
+          </p>
+          <p>
+            The <Link href="/docs/foundations/spatial" className="text-accent-ink underline decoration-line-strong underline-offset-2">Spatial theme</Link>{" "}
+            is the single licensed exception, and it does not soften this rule so much
+            as pay for it: the content surface there is one translucent plane, and it is
+            only legible because the photograph behind it is held under a measured
+            luminance cap. Translucent content without that cap is still the mistake
+            this rule exists to prevent \u2014 under Spatial, <Code>Card</Code> stops
+            painting entirely and the plane underneath is what you see.
           </p>
           <p>
             <strong>2 · The barrier layer is mandatory,</strong> and it is already inside

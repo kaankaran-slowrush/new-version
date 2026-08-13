@@ -121,7 +121,16 @@ export function SessionWorkspace({
     /* Fixed app shell: the page itself never scrolls — the canvas and rails own
        their own overflow, so the composer stays put. */
     <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="z-(--z-sticky) flex shrink-0 items-center gap-3 border-b border-line-inner bg-surface px-5 py-3">
+      <header
+        /* `bar` — the plane material with no radius and no lift, because this is a
+           full-width edge-to-edge header rather than a floating panel. Under the
+           spatial theme its `bg-surface` resolves to transparent, so without this
+           the title and the agent name would sit directly on the photograph at
+           about 3.7:1. The focus shell has no `[data-plane-scope]` around it — it
+           deliberately sits outside the (app) route group — so it opts in by name. */
+        data-plane="bar"
+        className="z-(--z-sticky) flex shrink-0 items-center gap-3 border-b border-line-inner bg-surface px-5 py-3"
+      >
         <Link
           href="/"
           title="Back to dashboard"
@@ -204,7 +213,17 @@ export function SessionWorkspace({
 
         <div className="absolute inset-0 z-(--z-base) flex flex-col">
           <div className="flex min-h-0 flex-1 justify-center overflow-y-auto px-6 pt-8 pb-4">
-            <div className="w-full max-w-(--canvas-max-width)">
+            {/* THE CONVERSATION SITS ON A PLANE OF ITS OWN under the spatial theme.
+                Two things break without it, and the second is the worse one: turn
+                text lands on the bare photograph, and every `bg-surface-sunken`
+                inside — the media frames, the footer trays — resolves to a 28%
+                black that is meant to be a groove cut INTO a plane. With no plane
+                under it that black is simply translucent, so a still-rendering
+                video frame becomes a window onto the wallpaper.
+
+                `padded` because this element never had padding of its own; it was
+                a bare measure-limiting wrapper until it became a surface. */}
+            <div data-plane="padded" className="w-full max-w-(--canvas-max-width)">
               {activeTurn ? (
                 <SessionCanvas turn={activeTurn} />
               ) : (

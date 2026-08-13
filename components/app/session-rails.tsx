@@ -7,6 +7,8 @@ import { Icon } from "@/components/primitives/icon";
 import { MODALITY_ICON } from "@/lib/icons";
 import type { Turn } from "@/lib/mock/sessions";
 import { cn } from "@/lib/cn";
+import { ProceduralCover } from "./procedural-cover";
+import { Waveform } from "./waveform";
 
 /* =============================================================================
    Session rails — TimelineRail (left) and MediaRail (right)
@@ -187,12 +189,42 @@ export function MediaRail({
             title={turn.prompt}
             className={cn(
               "relative grid size-7.5 shrink-0 place-items-center overflow-hidden rounded-lg",
-              "bg-[linear-gradient(160deg,oklch(94%_0.03_202),oklch(88.5%_0.008_75))]",
+              /* No fill of its own any more. The tile shows the turn's real asset,
+                 or the shared cover, or a waveform if it is audio — see the frame
+                 below. It used to paint one hard-coded pale gradient, so every
+                 thumbnail in the strip was the same colour regardless of what it
+                 pointed at, and on a dark theme the strip was a row of bright
+                 rectangles. */
               "transition-[width,height,box-shadow] duration-(--duration-normal) ease-(--ease-out-quint)",
               "group-hover/media:size-12 group-focus-within/media:size-12",
               active ? "ring-2 ring-accent" : "ring-1 ring-line",
             )}
           >
+            {/* THE TILE'S CONTENT, at thumbnail scale. `density="thumb"` is what
+                keeps an audio waveform readable at 30px — a cover's bar count would
+                be sub-pixel here and grey out into a solid block. A failed or
+                in-flight turn has no asset and gets the generated cover, which is
+                the honest answer rather than a picture of something that does not
+                exist. */}
+            {turn.image ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- fixture asset
+                 at a known /public path; the optimiser has nothing to add to a 30px
+                 thumbnail and would pull a client boundary into this rail. */
+              <img
+                src={turn.image}
+                alt=""
+                className="absolute inset-0 size-full object-cover"
+              />
+            ) : turn.modality === "audio" ? (
+              <Waveform seed={turn.id} duration={turn.duration} density="thumb" />
+            ) : (
+              <ProceduralCover
+                seed={turn.id}
+                modality={turn.modality}
+                tone={turn.state === "failed" ? "danger" : "accent"}
+                className="absolute inset-0 h-auto"
+              />
+            )}
             {turn.state === "generating" && (
               <span className="anim-ring absolute -inset-0.5 rounded-xl border-[1.5px] border-accent opacity-60" />
             )}

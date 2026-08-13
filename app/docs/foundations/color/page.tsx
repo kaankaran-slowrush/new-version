@@ -447,7 +447,7 @@ export default function ColorDocs() {
       </DocSection>
       <DocSection
         title="The dim theme"
-        description="Dark, deliberately not black — and the first real test of whether the three-layer token split was true."
+        description="Dark, deliberately not black \u2014 and the first real test of whether the three-layer token split was true. Spatial was the second, and it has its own page."
       >
         <SpecTable
           columns={["Token", "Light", "Dim", "Note"]}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Code,
   DocHeader,
@@ -115,9 +116,11 @@ export default function ElevationDocs() {
 
         <UXNote title="The three glass rules">
           <p>
-            <strong>1 · Navigational chrome only.</strong> The topbar, the side rails,
-            the composer. Never body content and never data-dense cards — reading beats
-            effect, every time. Content surfaces that want translucency use{" "}
+            <strong>1 · Navigational chrome only \u2014 except under Spatial.</strong>{" "}
+            The topbar, the side rails, the composer. Never body content and never
+            data-dense cards \u2014 reading beats effect, every time. The one theme that
+            inverts this buys the right to with a measured backdrop cap; see{" "}
+            <Link href="/docs/foundations/spatial" className="text-accent-ink underline decoration-line-strong underline-offset-2">Spatial</Link>. Content surfaces that want translucency use{" "}
             <Code>.surface-veil</Code> instead: 80% and no blur, which is safe precisely
             because it drops the two things that make glass risky. See{" "}
             <Code>Color</Code> for the full comparison.

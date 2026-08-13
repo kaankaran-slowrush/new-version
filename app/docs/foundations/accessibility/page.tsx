@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import {
   Code,
@@ -10,6 +11,15 @@ import {
 } from "@/components/docs/doc-kit";
 
 export const metadata = { title: "Accessibility" };
+
+const DocLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <Link
+    href={href}
+    className="text-accent-ink underline decoration-line-strong underline-offset-2"
+  >
+    {children}
+  </Link>
+);
 
 export default function AccessibilityDocs() {
   return (
@@ -143,6 +153,72 @@ export default function AccessibilityDocs() {
         </p>
       </DocSection>
 
+      <DocSection
+        title="Translucency"
+        description="The kit has three themes and one of them is made of glass, so this is a contrast problem rather than an aesthetic one."
+      >
+        <p className="mb-6 max-w-measure text-ink-secondary">
+          Two of the three themes keep translucency to navigational chrome, where the{" "}
+          <Code>.glass</Code> barrier layer guarantees the text on top of it. The{" "}
+          <DocLink href="/docs/foundations/spatial">Spatial</DocLink> theme puts content
+          on a translucent plane, which is only defensible because what sits behind that
+          plane is not arbitrary — it is a photograph held under a measured luminance
+          cap.
+        </p>
+
+        <SpecTable
+          columns={["Mechanism", "Value", "What it guarantees"]}
+          rows={[
+            [
+              "The barrier layer",
+              "--color-glass-barrier, on .glass::before",
+              "Chrome text stays \u22654.5:1 regardless of what drifts underneath. Mandatory \u2014 do not bypass it.",
+            ],
+            [
+              "The backdrop cap",
+              "--backdrop-cap: 0.40",
+              "Pins ANY photograph's brightest pixel to 0.22 luminance, including one a workspace supplies itself. Without it, legibility would depend on the customer's choice of wallpaper.",
+            ],
+            [
+              "The measured floor",
+              "5.48:1 worst case",
+              "The lowest real-text contrast anywhere in the Spatial theme (--color-ink-tertiary over the capped peak). Every other level is higher.",
+            ],
+            [
+              "prefers-reduced-transparency",
+              "Fully opaque",
+              "Every theme drops to opaque surfaces. Spatial falls back to opaque DARK surfaces, not to the light theme \u2014 its ink is near-white and would vanish on white cards.",
+            ],
+            [
+              "prefers-contrast: more",
+              "Opaque + real borders",
+              "Glass becomes solid, hairlines become real lines, and the ambient layer is removed rather than dimmed.",
+            ],
+          ]}
+        />
+
+        <DontNote>
+          <p>
+            <strong>
+              Do not assume a preference query improves contrast just because it is
+              named after contrast.
+            </strong>{" "}
+            The <Code>prefers-contrast: more</Code> block reassigns ink tokens toward{" "}
+            <Code>graphite-700</Code>, which is correct on a light ground and pushes both
+            dark themes the WRONG WAY. It shipped that way for the dim theme and had to
+            be fixed. Every theme now needs its own branch inside that query, and{" "}
+            <Code>--color-border-contrast</Code> exists because a single literal border
+            colour cannot be right on both a white card and a dark one.
+          </p>
+          <p>
+            The Spatial branch matters twice over: three rules in that query force{" "}
+            <Code>var(--color-surface)</Code>, and under Spatial that token is{" "}
+            <Code>transparent</Code>. Left alone, a user asking for more contrast would
+            have got completely see-through glass.
+          </p>
+        </DontNote>
+      </DocSection>
+
       <DocSection title="Checklist before shipping a screen">
         <ul className="space-y-2.5 text-ink-secondary">
           {[
@@ -150,9 +226,10 @@ export default function AccessibilityDocs() {
             "Escape closes every overlay; focus returns to the element that opened it.",
             "Every icon-only button has an aria-label.",
             "Every status is legible in greyscale.",
-            "Body text over glass is at least 4.5:1 (the barrier layer is doing this — do not bypass it).",
+            "Body text over glass is at least 4.5:1 (the barrier layer is doing this \u2014 do not bypass it). Under Spatial the same floor is held by the backdrop cap instead, measured at 5.48:1.",
             "Emulate reduced motion: nothing is permanently invisible, nothing loops.",
-            "Emulate increased contrast: glass is solid, borders are real.",
+            "Emulate increased contrast: glass is solid, borders are real \u2014 and check it on EVERY theme, not just light. That query has reduced contrast on a dark theme before.",
+            "Emulate reduced transparency: no surface is translucent, and the Spatial backdrop is not just hidden but never fetched.",
             "Any number that can change carries the tabular class.",
             "At 320px width nothing scrolls horizontally except containers explicitly marked overflow-x-auto.",
           ].map((item) => (

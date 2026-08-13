@@ -332,6 +332,11 @@
      RULES (enforced by convention, documented in /docs):
        1. Navigational chrome ONLY — topbar, side rails, composer. Never body
           content, never data-dense cards. Reading beats effect.
+          THE ONE EXCEPTION IS THE SPATIAL THEME, where the content surface is
+          itself a translucent plane and `.glass` adopts that plane's exact recipe
+          so chrome and content stop disagreeing about what they are made of. The
+          rule is not deleted there — it is inverted deliberately, once, with the
+          backdrop cap paying for it. See the theme block in styles/tokens.css.
        2. The BARRIER LAYER is mandatory. `--color-glass` alone is too sheer for
           text to survive over arbitrary backdrops, so ::before paints a solid
           low-opacity fill beneath the content. This is what keeps body text
@@ -435,8 +440,16 @@
 
      It is allowed in exactly one situation: a small control whose *pressed vs.
      unpressed* physicality is the information, and which carries no long-form
-     text. Toggle tracks, segmented-control wells, slider grooves. The label
-     always lives on an opaque sibling, never on the neumorphic surface itself.
+     text. Toggle tracks, segmented-control wells, slider grooves.
+
+     LABELS DO SIT ON `.neu-raised`, and this note used to claim they never did.
+     That was wrong about the code: SegmentedControl and FilterPills both apply
+     `neu-raised text-ink` to the active segment itself, so the raised surface is
+     the label's background in two of the five consumers. The real constraint is
+     narrower than "no text on it" — the raised fill has to hold body-text contrast
+     in every theme, which is what rules out the near-white value the spatial theme
+     first tried. Knobs (Switch, Slider) and the Tabs pill indicator are the empty
+     ones; the other two are not.
      --------------------------------------------------------------------------- */
 
   /* Inset well — "things go in here". Used for toggle/segmented tracks. */
@@ -488,6 +501,211 @@
 }
 
 /* =============================================================================
+   THE SPATIAL PLANE
+   =============================================================================
+
+   Everything the spatial theme needs that is not a token. See the theme block in
+   tokens.css for the derivation of --plane-fill's alpha, and
+   /docs/foundations/spatial for the language itself.
+
+   DELIBERATELY UNLAYERED. Tailwind orders `theme, base, components, utilities`,
+   so a rule in @layer components loses to any utility — and every one of these
+   rules exists precisely to override a utility that a route already wrote
+   (`bg-surface` on the session header, `pb-24` on twelve page mains). Unlayered
+   CSS beats all layered CSS, which is the only place these can live and work.
+   It is the same reason `.eyebrow` sits outside every layer above.
+
+   TWO SELECTORS, NOT ONE PER ROUTE.
+     [data-plane-scope] > main   — set once in app/(app)/layout.tsx, which is what
+                                  covers all twelve product routes without editing
+                                  any of them.
+     [data-plane]                — the four shells that are not product routes and
+                                  need the plane somewhere other than on `main`:
+                                  /docs's content column, the 404's centred block,
+                                  and the session view's header and canvas column.
+
+   `main` ALONE WOULD HAVE BEEN WRONG. /docs's main is a flex child beside a
+   persistent index, and the 404's main is a `min-h-dvh` centring grid — a plane on
+   either would be a full-viewport panel with the content floating in the middle of
+   it. The scope marker is what keeps the rule from reaching them.
+
+   AUTH NEEDED NOTHING. Both auth pages already render a GlassPanel, and under this
+   theme .glass and the plane are the same material by construction, so the login
+   card became a plane without being touched.
+   ============================================================================= */
+
+/* THE TWO BACKDROPS ARE ALTERNATIVES, and the switch is CSS rather than a
+   conditional render. Both components sit in the root layout unconditionally; this
+   pair of rules decides which one exists. Doing it here rather than in JavaScript
+   is what lets the photograph be a CSS background — a browser does not fetch the
+   background of a `display: none` element, so light and dim users download none of
+   it, and no client component has to wait for hydration to find out the theme. */
+[data-spatial-backdrop] {
+  display: none;
+}
+
+:root[data-theme="spatial"] [data-ambient] {
+  display: none;
+}
+
+:root[data-theme="spatial"] [data-spatial-backdrop] {
+  display: block;
+}
+
+/* The image itself. `--backdrop-image` is the workspace override hook — set it on
+   :root to any url() and it goes through the same cap, which is the only reason a
+   customer-supplied photograph can be allowed at all. */
+:root[data-theme="spatial"] .spatial-backdrop-image {
+  background-image: var(--backdrop-image, url("/artifacts/backdrop-tunnel.jpg"));
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme="spatial"] [data-plane-scope] > main,
+:root[data-theme="spatial"] [data-plane] {
+  background-color: var(--plane-fill);
+  backdrop-filter: blur(var(--plane-blur)) saturate(var(--plane-saturate));
+  -webkit-backdrop-filter: blur(var(--plane-blur)) saturate(var(--plane-saturate));
+  border: var(--plane-edge);
+  border-radius: var(--plane-radius);
+  /* The fill is an alpha, so it would otherwise paint under its own alpha border
+     and dilute the edge — the same reason .panel-edge needs this. */
+  background-clip: padding-box;
+  /* The specular top bevel, identical to .glass's. It is most of why a translucent
+     panel reads as a pane of something rather than as reduced opacity. */
+  box-shadow:
+    inset 0 1px 0 oklch(100% 0 0 / 0.14),
+    var(--plane-lift);
+}
+
+/* `data-plane="bar"` — the plane material on an edge-to-edge element. The session
+   header spans the viewport and carries a bottom hairline, so a radius would leave
+   four gaps at the corners and a lift would cast a shadow along a seam that has no
+   gap to cast into. It keeps the fill, the blur and the specular bevel, which are
+   the parts that make it the same material as everything else. */
+:root[data-theme="spatial"] [data-plane="bar"] {
+  border: 0;
+  border-bottom: 1px solid var(--color-line-inner);
+  border-radius: 0;
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.1);
+}
+
+/* `data-plane="rail"` — a full-height plane against the viewport edge. Same idea as
+   `bar` in the other axis: the two corners that meet the edge lose their radius,
+   because a rounded corner needs a gap behind it to read as a corner rather than as
+   a chip out of the panel. Horizontal padding is added here rather than in the
+   markup so light and dim keep their exact spacing. */
+:root[data-theme="spatial"] [data-plane="rail"] {
+  border-inline-start: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  padding-inline: 1.25rem;
+}
+
+/* `data-plane="padded"` — for an opt-in site whose element has no padding of its
+   own, because it was never a surface before. The variant is on the attribute
+   rather than on a Tailwind class so that light and dim stay pixel-identical: a
+   `p-8` in the markup would have added padding to all three themes, and only the
+   spatial one has a panel there to need it. */
+:root[data-theme="spatial"] [data-plane="padded"] {
+  padding: 2rem;
+}
+
+/* The product routes carry `px-6 pb-24` for a page that bleeds to the viewport.
+   As a panel those are wrong in both directions: 96px of bottom padding inside a
+   bordered plane reads as a rendering fault, and there is no top padding at all
+   because the shell's `pt-24` sits outside the plane. */
+:root[data-theme="spatial"] [data-plane-scope] > main {
+  padding-block: 2.5rem;
+  /* Keeps the utility's `margin-inline: auto` and `max-width` doing their jobs
+     while guaranteeing the plane never touches the viewport edge at any width.
+     --nav-inset is the gap the floating nav already uses, so the plane and the nav
+     share one margin rather than each having their own. */
+  width: calc(100% - 2 * var(--nav-inset));
+}
+
+/* THE NESTED-PLANE GUARD, and it is a padding bug rather than an opacity one.
+   With --color-surface transparent, a Card inside a Card no longer doubles a
+   translucency — nothing paints twice. What it does double is padding: `p-6`
+   inside `p-6`, so an EmptyState inside a Card sits 48px from the plane's edge.
+   Ten product routes nest this way and platform/run-history nests four deep.
+
+   Scoped to the plane rather than to Card, because the rule is about what a plane
+   contains, and it fires on the class Card composes — not on 121 call sites. */
+:root[data-theme="spatial"] [data-plane-scope] > main .panel-edge .panel-edge,
+:root[data-theme="spatial"] [data-plane] .panel-edge .panel-edge {
+  padding: 0;
+}
+
+/* MEDIA DRAWS ITS OWN EDGE HERE, and this is the one thing the spatial catalogue
+   predicted correctly about media. Everywhere else in the product a photograph is
+   bounded by the Card it sits in; under this theme that Card paints nothing, so a
+   16:9 frame has no boundary of its own and reads as an image pasted onto the plane
+   rather than as a pane set into it.
+
+   `inset` so it lands inside the frame's own `overflow-hidden` and follows whatever
+   radius the caller set, rather than needing a matching radius here. A shadow
+   rather than a border because a border would change the frame's box and reflow the
+   media inside it — this has to be purely additive to be safe on twelve call sites.
+
+   Deliberately weaker than --plane-edge: the plane's edge separates the panel from
+   a photograph, this one separates a photograph from the panel, and the second is a
+   smaller claim. What it must never do is compete with the media's own content. */
+:root[data-theme="spatial"] [data-media-frame] {
+  box-shadow: inset 0 0 0 1px oklch(100% 0 0 / 0.12);
+}
+
+/* Under this theme the elevated-surface edge has nothing to be elevated above:
+   every card is transparent and sits on the one plane. A 1.5px hairline around
+   each of them turns the page into a wireframe of boxes. Regions separate with
+   --color-line-strong rules and with space instead. */
+:root[data-theme="spatial"] .panel-edge {
+  border-color: transparent;
+}
+
+/* The neumorphic pair, redefined once. 34 references across Switch, Slider,
+   SegmentedControl, Tabs.pill and FilterPills.segmented follow from these two
+   rules without any component changing.
+
+   The light-theme values are literally inverted here: the inset well's bottom
+   highlight is a 70% WHITE line, which on a dark groove reads as a bright scratch
+   across the track. The groove keeps a dark inner shadow and gains a faint top
+   sheen instead — light falls into a hole from above, not out of it. */
+:root[data-theme="spatial"] .neu-inset {
+  box-shadow:
+    inset 0 1px 3px oklch(0% 0 0 / 0.45),
+    inset 0 -1px 0 oklch(100% 0 0 / 0.06);
+}
+
+/* THE RAISED PART IS DARK, and getting here took two wrong answers worth
+   recording, because the mistake is easy to repeat.
+
+   It was first written near-white — reasoning that the knob should be the one
+   opaque object in a glass language. That is a good story about a Switch and a
+   disaster everywhere else, because `.neu-raised` is not only knobs: the
+   SegmentedControl's active segment and FilterPills' active pill both carry
+   `text-ink` directly on this surface, so a near-white fill rendered near-white
+   text on near-white and the selected tab became unreadable. Two of the five
+   consumers have labels on them.
+
+   The second wrong answer was 34% — a lifted dark surface, which fixes the labels
+   but sits at 1.14x the groove's luminance, so a Switch in its OFF state has a
+   knob you cannot find. 38% reproduces the dim theme's proven groove-to-knob
+   ratio (1.34x against dim's 1.36x) while holding 9.2:1 for ink on top of it.
+
+   IT ALSO MAKES THE SWITCH BEHAVE CORRECTLY, which the near-white version did not:
+   a dark knob is quiet against the dark groove when off, and prominent against the
+   light accent track when on (5.9:1). Off states should not be the brightest thing
+   on the screen. This is exactly how dim already solves it. */
+:root[data-theme="spatial"] .neu-raised {
+  background-color: oklch(38% 0.012 255);
+  box-shadow:
+    0 1px 3px oklch(0% 0 0 / 0.5),
+    inset 0 1px 0 oklch(100% 0 0 / 0.1);
+}
+
+/* =============================================================================
    ACCESSIBILITY ESCAPE HATCHES
    First-class, not an afterthought. The design is allowed to be atmospheric
    only because it degrades honestly when the user has asked it not to be.
@@ -534,6 +752,59 @@
     --color-ink-tertiary: var(--color-border-contrast);
     --color-ink-muted: var(--color-graphite-600);
   }
+
+  /* THE :root BLOCK ABOVE IS THE LIGHT THEME'S, and both dark themes override it
+     in tokens.css — otherwise this query pushes their ink toward graphite-700 and
+     `prefers-contrast: more` REDUCES contrast, which is the worst thing that query
+     could do. The dim theme already had to be fixed for exactly this. */
+
+  /* Spatial needs its own branch here for a second reason: three rules in this
+     query force `var(--color-surface)`, and under spatial that token is
+     `transparent`. Left alone, asking for more contrast would make the glass
+     completely see-through. So the theme gets opaque surfaces back — measured at
+     13.4:1 for ink, 7.8:1 for ink-tertiary — and the plane stops being a plane. */
+  :root[data-theme="spatial"] {
+    --color-surface: oklch(28% 0.012 255);
+    --color-surface-veil: oklch(28% 0.012 255);
+    --color-surface-sunken: oklch(21% 0.014 255);
+  }
+  /* My own `.panel-edge { border-color: transparent }` above is more specific than
+     this query's `.panel-edge`, so without restating it at matching specificity the
+     spatial theme would keep its invisible edges in high-contrast mode. Once the
+     surfaces are opaque again the cards are real objects and need real borders. */
+  :root[data-theme="spatial"] .panel-edge {
+    border-color: var(--color-border-contrast);
+  }
+  :root[data-theme="spatial"] .neu-inset,
+  :root[data-theme="spatial"] .neu-raised {
+    box-shadow: none;
+  }
+  /* THE PLANE GOES FULLY OPAQUE, AND THE PHOTOGRAPH GOES WITH IT.
+     The theme block sets a 92% plane and a 0.90 cap for this query, which measures
+     well (15.6:1 for ink) but leaves the query internally inconsistent: three rules
+     above force `.glass` fully opaque with no filter, so chrome would be solid while
+     the content plane behind it stayed 8% see-through. Someone asking for maximum
+     contrast should not have to notice that the two disagree. Fully opaque is also
+     the simpler thing to document and the easier thing to keep true. */
+  :root[data-theme="spatial"] {
+    --plane-fill: oklch(22% 0.012 255);
+    --plane-blur: 0px;
+    --plane-saturate: 100%;
+  }
+  :root[data-theme="spatial"] [data-plane-scope] > main,
+  :root[data-theme="spatial"] [data-plane] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  :root[data-theme="spatial"] [data-spatial-backdrop] {
+    display: none;
+  }
+  /* Same reason as under reduced-transparency: with the plane opaque, a nested card
+     is a real visible surface again and its content must not sit flush to its edge. */
+  :root[data-theme="spatial"] [data-plane-scope] > main .panel-edge .panel-edge,
+  :root[data-theme="spatial"] [data-plane] .panel-edge .panel-edge {
+    padding: revert-layer;
+  }
 }
 
 /* Some platforms expose transparency preference separately from contrast. */
@@ -554,6 +825,66 @@
   .ambient-layer {
     background-image: none !important;
     display: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     SPATIAL WITHOUT TRANSLUCENCY.
+
+     For the other two themes this query removes an effect. Here it removes the
+     entire language — translucency IS the theme — so this is not a courtesy
+     branch, it is a supported third rendering that has to stand on its own.
+
+     IT FALLS BACK TO OPAQUE DARK SURFACES, NOT TO THE LIGHT THEME. Handing spatial
+     the light theme's surfaces would leave near-white ink on near-white cards; the
+     ink tokens are what make the theme dark, and they are not part of what this
+     query is switching off. So spatial degrades to something very close to `dim`:
+     opaque cards, real borders, real shadows. Same product, no glass.
+
+     THE PHOTOGRAPH GOES TOO. A backdrop nobody can see through is just a picture
+     behind an opaque panel, and it costs a full-viewport image download to be
+     invisible. SpatialBackdrop reads this same query and renders nothing.
+     --------------------------------------------------------------------------- */
+  :root[data-theme="spatial"] {
+    --color-surface: oklch(28% 0.012 255);
+    --color-surface-veil: oklch(28% 0.012 255);
+    --color-surface-sunken: oklch(21% 0.014 255);
+    --plane-fill: oklch(24% 0.012 255);
+    --plane-blur: 0px;
+    --plane-saturate: 100%;
+    --plane-edge: var(--border-width-panel) solid var(--color-line);
+    /* Elevation has to come back from somewhere. With no plane doing the
+       separating, borders and shadows carry it again — dim's values, since this is
+       now dim's problem. */
+    --shadow-xs: 0 0 0 1px oklch(0% 0 0 / 0.3);
+    --shadow-sm: 0 1px 2px -1px oklch(0% 0 0 / 0.4), 0 2px 8px oklch(0% 0 0 / 0.22);
+    --shadow-md: 0 2px 4px -2px oklch(0% 0 0 / 0.42), 0 8px 20px -6px oklch(0% 0 0 / 0.3);
+    --plane-lift: var(--shadow-md);
+  }
+  /* Cards are objects again, so they get their edges back. Same specificity note
+     as in the contrast query above. */
+  :root[data-theme="spatial"] .panel-edge {
+    border-color: var(--color-line);
+  }
+  /* blur(0px) still promotes a compositing layer for no benefit; take the filter
+     off entirely rather than setting it to a no-op. */
+  :root[data-theme="spatial"] [data-plane-scope] > main,
+  :root[data-theme="spatial"] [data-plane] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* And the photograph goes with it — see the note above. SpatialBackdrop is
+     hidden rather than conditionally rendered, so this also cancels the fetch. */
+  :root[data-theme="spatial"] [data-spatial-backdrop] {
+    display: none;
+  }
+  /* AND THE NESTING GUARD IS WITHDRAWN. It zeroes a nested card's padding because
+     under the plane that card paints nothing, so its padding is pure duplication.
+     Here the card is opaque again — it is a real surface with real content inside
+     it, and content flush against a visible card edge is the bug the padding was
+     preventing. The guard is only correct while the card is invisible. */
+  :root[data-theme="spatial"] [data-plane-scope] > main .panel-edge .panel-edge,
+  :root[data-theme="spatial"] [data-plane] .panel-edge .panel-edge {
+    padding: revert-layer;
   }
 }
 
