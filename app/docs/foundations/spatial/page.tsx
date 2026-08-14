@@ -188,14 +188,29 @@ export default function SpatialDocs() {
             phone should get.
           </p>
           <p>
-            This is why <Code>--page-max-width</Code> narrowed from 73.75rem to{" "}
-            <strong>62.5rem (1000px)</strong> in the same change. At 1440 that is roughly{" "}
-            <strong>220px of photograph each side instead of ~130</strong>, and it is
-            where the sense of content resting <em>in</em> something rather than{" "}
-            <em>inside</em> something comes from. The cost is real density: run-history&apos;s
-            seven-column table and the three-up model grid each lose 180px. Both were read
-            at 1280 and 1440 before this shipped rather than assumed to be fine — no
-            overflow, and the table still breathes.
+            <Code>--page-max-width</Code> is therefore one number with two effects, and
+            it went <strong>1180 → 1000 → 1440</strong>. The middle step is worth
+            recording because it was wrong for a stated reason. At 1000 the ground
+            feathered out to roughly 220px of photograph each side at 1440 and the space
+            read beautifully; it also left every page looking squeezed into the middle of
+            the display, which is a worse daily cost than a thin margin is a daily gain.
+            A dashboard should fill the screen it is given.
+          </p>
+          <p>
+            At <strong>90rem (1440px)</strong> the ground is uniform edge to edge on a
+            laptop and the photograph survives as <strong>texture</strong> under
+            everything rather than as a view beside it — the ground is a 0.64 scrim, not
+            paint, so the image&apos;s colour and its large shapes still move underneath.
+            And the mechanism scales by itself: at 1920 the feather reopens to 240px a
+            side with no change to anything. Wide displays get the margin back; laptops
+            get their width back.
+          </p>
+          <p>
+            Line length is not at risk, which is the usual objection to a wide column.
+            Every prose block is capped independently — <Code>headerSupportVariants</Code>{" "}
+            carries <Code>max-w-measure</Code> (62ch), and FirstRun and the docs kit do
+            the same. Only grids, rails and tables use the full width, and those are the
+            things that wanted it.
           </p>
           <p>
             A gradient rather than a mask, because a mask would need its own compositing
@@ -250,20 +265,27 @@ export default function SpatialDocs() {
 
         <UXNote title="The default backdrop changed, and the ground's shape is the reason">
           <p>
-            The default moved from <Code>backdrop-tunnel</Code> to{" "}
-            <Code>backdrop-bokeh</Code>. The ground darkens the <strong>centre</strong> —
-            that is where the content column is — so a backdrop whose light pools in the
-            middle has its interest eaten, and only its dark corners survive into the
-            margins where the reveal actually is. Tunnel is a radial vignette, i.e.
-            exactly that shape: it measured <strong>0.008 and 0.003</strong> in the left
-            and right margins. Effectively no photograph.
+            <Code>backdrop-tunnel</Code> was swapped out for{" "}
+            <Code>backdrop-bokeh</Code> and then swapped back. That looks like
+            indecision and is not: the <strong>selection criterion inverted</strong> when
+            the column widened, and the same image is right or wrong depending on which
+            shape the ground has.
           </p>
           <p>
-            Bokeh&apos;s light is spread across the frame, and the same two samples read{" "}
-            <strong>0.042 and 0.028</strong> — one brighter than the ground it feathers
-            out of and one level with it, which is what makes the page read as space
-            rather than as a panel. A margin darker than the ground is not a margin; it is
-            a border drawn in black.
+            While the column was narrow, the ground feathered out to a real band of
+            photograph at each side, so what mattered was whether an image had light at
+            its <strong>edges</strong>. A vignette is the worst possible shape for that —
+            its interest is dead centre, exactly where the ground is strongest. Tunnel
+            measured <strong>0.008 and 0.003</strong> in the left and right margins:
+            effectively no photograph. Bokeh&apos;s spread light measured 0.042 and 0.028.
+          </p>
+          <p>
+            At full width there are no margins to fill, so the image is texture under
+            everything and the vignette becomes the <em>right</em> shape: its glow lifts
+            the middle of the page, where the content is, and its corners recede. Bokeh
+            under a uniform ground reads instead as four competing colour fields,
+            including a red and a green large enough to argue with the status palette.
+            One warm hue is quieter over a long session.
           </p>
           <p>
             Bokeh had previously been rejected, and the objection was real: its cream, red
@@ -289,18 +311,18 @@ export default function SpatialDocs() {
             ],
             [
               "Ground under the content column",
-              "0.0292 max",
-              "The darkness text is actually read against. The panel it replaced derived to 0.0388, so the ground came out slightly DARKER — bokeh's centre is darker than tunnel's, which is the safe direction: more contrast, not less.",
+              "0.0381 max",
+              "The darkness text is actually read against, sampled across the full width. The panel it replaced derived to 0.0388 and the design target was 0.0383, so the shipped ground lands within half a percent of what every value in the system was solved against.",
             ],
             [
-              "Photograph, left margin",
-              "0.042",
-              "Brighter than the ground it feathers out of. Under the previous backdrop this sample was 0.008.",
+              "Ground, mean across the width",
+              "0.0082",
+              "Well below the maximum, because the vignette's corners fall away. The maximum is what the contrast figures are solved against; the mean is what the page mostly looks like.",
             ],
             [
-              "Photograph, right margin",
-              "0.028",
-              "Level with the ground. Under the previous backdrop, 0.003 — which is to say the margins were black and the reveal did not exist.",
+              "Photograph in the margins",
+              "n/a at 1440",
+              "The column is 1440px, so at a 1440px viewport the ground is uniform and there is no margin to sample. At 1920 the feather reopens to 240px a side and this becomes a real measurement again — the reveal is a function of the display, not a fixed value.",
             ],
           ]}
         />
@@ -346,8 +368,8 @@ export default function SpatialDocs() {
             ],
             [
               "--page-max-width",
-              "62.5rem",
-              "1000px. The content column AND the ground's feather, because the gradient's middle stops are calc(50% -/+ half of this). One decision, one number.",
+              "90rem",
+              "1440px. The content column AND the ground's feather, because the gradient's middle stops are calc(50% -/+ half of this). One decision, one number — widen the column and the reveal closes, narrow it and the reveal opens.",
             ],
             [
               "--plane-fill",
@@ -407,8 +429,8 @@ export default function SpatialDocs() {
             [
               "ground",
               "--ground-scrim",
-              "0.0383 (0.0292 sampled)",
-              "No tier above it and no edge around it. The derived figure is over a peak-white pixel; 0.0292 is the maximum the shipped photograph actually produces under the column.",
+              "0.0383 (0.0381 sampled)",
+              "No tier above it and no edge around it. The derived figure is over a peak-white pixel; 0.0381 is the maximum the shipped photograph actually produces.",
             ],
             ["card", "--color-surface", "0.0602", "1.24×  (1.27× sampled)"],
             ["card edge", "--color-line", "0.0873", "1.55× — and see the padding-box note below for why it is not 1.25×."],
@@ -510,9 +532,9 @@ export default function SpatialDocs() {
           <p>
             The column above is the <strong>promise</strong>: every value derived over a
             peak-white backdrop pixel, which is the worst case the cap permits. Sampled
-            from rendered pixels instead — over the shipped bokeh frame, where the ground
-            sits at or below 0.0292 rather than at the worst case&apos;s 0.0383 — the same
-            eight levels on a card read{" "}
+            from rendered pixels instead — over the shipped frame, whose ground averages
+            0.0082 and peaks at 0.0381 rather than sitting at the worst case
+            everywhere — the same eight levels on a card read{" "}
             <strong>
               ink 12.1 · secondary 8.2 · tertiary 6.0 · muted 2.7 · accent 6.3 · success
               8.1 · warning 9.5 · danger 8.1

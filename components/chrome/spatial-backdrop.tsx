@@ -45,25 +45,30 @@
    Three frames ship (see public/artifacts/CREDITS.md). All three were rendered
    behind the real cap and looked at, not chosen from filenames:
 
-     backdrop-bokeh    DEFAULT. Out-of-focus lights: non-figurative, and its light is
-                       spread across the frame rather than pooled in the middle.
-                       That last part is what decides it. The ground darkens the
-                       CENTRE — that is where the content column is — so a backdrop
-                       whose interest is central has its interest eaten, and only its
-                       dark corners survive into the margins where the reveal is.
+     backdrop-tunnel   DEFAULT. A dark radial vignette, warm, with a soft glow at
+                       its centre and corners that fall away.
 
-                       IT WAS PREVIOUSLY REJECTED, and the reason no longer applies.
-                       The objection was that its cream, red and green discs read as
-                       coloured patches arguing with the status palette. That was
-                       true when the photograph was a full-bleed ground behind
-                       everything. It now appears only in the margins, under the cap
-                       AND a 24px defocus, where the discs are soft colour fields at
-                       around 0.03 luminance — atmosphere, not shapes.
-     backdrop-tunnel   The previous default, and a good illustration of the above: a
-                       radial vignette is exactly the wrong shape for this ground.
-                       Its glow sits dead centre where the scrim is strongest, so it
-                       measured 0.008 and 0.003 in the left and right margins —
-                       effectively no photograph at all.
+                       IT WAS SWAPPED OUT AND SWAPPED BACK, and the reason is worth
+                       recording because it looks like indecision and is not: the
+                       SELECTION CRITERION INVERTED when the content column widened.
+
+                       While the column was narrow, the ground feathered out to a
+                       real band of photograph at each side, so what mattered was
+                       whether an image had light at its EDGES. A vignette is the
+                       worst possible shape for that — its interest is dead centre,
+                       exactly where the ground is strongest, so it measured 0.008
+                       and 0.003 in the margins. Effectively no photograph.
+
+                       At full width the ground is uniform and there are no margins
+                       to fill, so the image is TEXTURE under everything rather than
+                       a view beside it. Now the vignette is the right shape: the
+                       glow lifts the middle of the page, where the content is, and
+                       the corners recede. One warm hue, quiet over a long session.
+     backdrop-bokeh    Out-of-focus lights, and the default while the column was
+                       narrow — its light is spread, which is what the margins
+                       needed. Under a uniform ground the same spread reads as four
+                       competing colour fields, including a red and a green large
+                       enough to argue with the status palette.
      backdrop-night    A storm over a city. Rejected on looking at it — it has a
                        horizon line and a lightning bolt, so it has a subject, and a
                        subject competes with the interface for the whole session.

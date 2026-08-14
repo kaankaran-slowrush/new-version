@@ -703,16 +703,31 @@
   --rail-max-height: 18.75rem; /* ~4 rows, then it scrolls */
 
   --canvas-max-width: 40rem; /* 640px — reading/working column */
-  /* 1000px, down from 1180. THE COLUMN WIDTH AND THE PHOTOGRAPH'S MARGIN ARE THE
-     SAME DECISION: `.spatial-ground` derives its feather stops from this token, so
-     narrowing the column is what opens the reveal at the sides. At 1440 that is
-     ~220px of photograph each side instead of ~130, and it is where the sense of
-     content resting ON something rather than inside something actually comes from.
+  /* 1440px. THE COLUMN WIDTH AND THE PHOTOGRAPH'S MARGIN ARE THE SAME DECISION:
+     `.spatial-ground` derives its feather stops from this token, so widening the
+     column is what closes the reveal at the sides and narrowing it is what opens
+     it. One number, two effects, deliberately — they should not be able to drift
+     apart.
 
-     The cost is density, and it is real: run-history's seven-column table and the
-     three-up model grid both lose 180px. Both were read at 1280 and 1440 before
-     this shipped rather than assumed to be fine. */
-  --page-max-width: 62.5rem; /* 1000px — dashboard content, and the ground's width */
+     IT WENT 1180 -> 1000 -> 1440, and the middle step is worth recording because it
+     was wrong for a stated reason. 1000 bought ~220px of photograph each side at
+     1440 and the space read beautifully; it also left every page looking squeezed
+     into the middle of the screen, which is a worse daily cost than a thin margin
+     is a daily gain. A dashboard should fill the display it is given.
+
+     WHAT THIS DOES NOT LOSE. At 1440 the ground is now uniform edge to edge and the
+     photograph survives as TEXTURE in it rather than as a view at the sides — the
+     ground is a 0.64 scrim, not paint, so the image's colour and its large shapes
+     still move underneath everything. And the mechanism scales by itself: at 1920
+     the feather reopens to 240px a side with no change here. Wide displays get the
+     margin back; laptops get their width back.
+
+     LINE LENGTH IS NOT AT RISK, which is the usual objection to a wide column.
+     Every prose block is already capped independently — `headerSupportVariants` in
+     section-header.tsx carries `max-w-measure` (62ch), and FirstRun and the docs
+     kit do the same. Only grids, rails and tables actually use the full width, and
+     those are the things that wanted it. */
+  --page-max-width: 90rem; /* 1440px — dashboard content, and the ground's width */
 
   /* Edge weight for elevated surfaces. 1px, and it USED to be 1.5px on a stated
      justification that no longer applies: "at 1px a border on a white card reads
@@ -783,7 +798,7 @@
 
      A workspace overrides this on :root and both follow. It still goes through the
      same cap, which is the only reason a customer-supplied image is allowed. */
-  --backdrop-image: url("/artifacts/backdrop-bokeh.jpg");
+  --backdrop-image: url("/artifacts/backdrop-tunnel.jpg");
 
   /* ---------------------------------------------------------------------------
      THE GLASS MATERIAL. These were `--plane-*` and defined the page panel; they now
