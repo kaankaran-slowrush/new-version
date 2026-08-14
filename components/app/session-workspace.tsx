@@ -123,13 +123,17 @@ export function SessionWorkspace({
     <div className="flex h-dvh flex-col overflow-hidden">
       <header
         /* `bar` — the plane material with no radius and no lift, because this is a
-           full-width edge-to-edge header rather than a floating panel. Under the
-           spatial theme its `bg-surface` resolves to transparent, so without this
+           full-width edge-to-edge header rather than a floating panel. Without it
            the title and the agent name would sit directly on the photograph at
            about 3.7:1. The focus shell has no `[data-plane-scope]` around it — it
-           deliberately sits outside the (app) route group — so it opts in by name. */
+           deliberately sits outside the (app) route group — so it opts in by name.
+
+           NO `bg-surface` HERE, and it used to carry one. That token is the CARD
+           tier now, so painting it on top of the plane material would put the
+           header a step ABOVE the plane it is supposed to be made of — a seam
+           where the two meet, for no reason. The plane rule is the whole fill. */
         data-plane="bar"
-        className="z-(--z-sticky) flex shrink-0 items-center gap-3 border-b border-line-inner bg-surface px-5 py-3"
+        className="z-(--z-sticky) flex shrink-0 items-center gap-3 border-b border-line-inner px-5 py-3"
       >
         <Link
           href="/"

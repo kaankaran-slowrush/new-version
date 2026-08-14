@@ -86,7 +86,11 @@ const dataTableVariants = cva(
       stickyHeader: {
         true: [
           "[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-(--z-sticky)",
-          "[&_thead_th]:bg-surface",
+          /* `bg-surface-solid`, and it MUST be opaque: the card tier is a 7% alpha,
+             so rows would scroll visibly straight through the header. A sticky
+             header is by definition a thing that occludes what passes beneath it,
+             which is exactly what that token names. */
+          "[&_thead_th]:bg-surface-solid",
         ],
       },
     },

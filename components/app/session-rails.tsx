@@ -228,7 +228,11 @@ export function MediaRail({
             {turn.state === "generating" && (
               <span className="anim-ring absolute -inset-0.5 rounded-xl border-[1.5px] border-accent opacity-60" />
             )}
-            <span className="relative rounded bg-ink/55 p-0.5 text-white opacity-0 transition-opacity duration-(--duration-fast) group-hover/media:opacity-100 [&_svg]:size-2.5">
+            {/* `chip-over-media` + `text-ink`, and it was `bg-ink/55 text-white` — which
+                inverted with the ground: `ink` is near-white here, so this was a
+                near-white chip carrying white text on top of a photograph. The
+                over-media token exists for exactly this job. */}
+            <span className="relative rounded bg-chip-over-media p-0.5 text-ink opacity-0 transition-opacity duration-(--duration-fast) group-hover/media:opacity-100 [&_svg]:size-2.5">
               <Icon of={MODALITY_ICON[turn.modality]} />
             </span>
           </button>

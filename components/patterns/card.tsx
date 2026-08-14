@@ -12,7 +12,7 @@ import { headerMetaVariants, headerTitleVariants } from "./section-header";
 
    UX NOTES
    --------
-   • OPAQUE ON LIGHT AND DIM. `bg-surface` against the `canvas` ground
+   • THE RAISED TIER. `bg-surface` is a 7% white alpha over the plane
      is what separates "content" from "chrome" in this product. Glass is for
      navigational chrome only — a card is body content, and translucency behind
      data-dense text costs legibility for an effect nobody asked for.
@@ -38,15 +38,21 @@ import { headerMetaVariants, headerTitleVariants } from "./section-header";
 const cardVariants = cva(
   [
     "relative text-ink rounded-2xl",
-    /* TRANSLUCENT by default. `bg-surface` is kept as the fallback paint beneath
-       `.surface-veil` so a card is never unpainted if the utility is stripped, and
-       so `prefers-reduced-transparency` has something to fall back TO.
+    /* THE RAISED TIER. `--color-surface` is a 7% white alpha over the plane, which
+       measures 1.24x the plane's luminance — enough to read as an object, and the
+       largest value that still holds 4.5:1 for every ink level on top of it.
 
-       Cards are the one content surface licensed for translucency — see
-       --color-surface-veil in tokens.css for why 80% is safe (measured ≥4.77:1 for
-       every ink level over the densest point of the ambient layer) where glass on
-       content still is not. The nesting guard in globals.css turns a card inside a
-       card opaque automatically, so elevation never inverts. */
+       `.surface-veil` IS INERT HERE and is kept only so nothing referencing it can
+       drift: Tailwind orders `theme, base, components, utilities`, the class is
+       authored in @layer components, and `bg-surface` is a utility — so the utility
+       wins and the veil contributes nothing but its `background-clip`. That has been
+       true since v4 and the docs claimed otherwise for two releases.
+
+       THE FILL AND THE EDGE ARE DOING DIFFERENT JOBS, which is why both are here.
+       `background-clip: padding-box` on `.panel-edge` means the fill does NOT paint
+       under the border, so the hairline composites over the PLANE rather than over
+       the card — 1.55x instead of 1.25x. Remove the clip and the edge dilutes by a
+       third. */
     "bg-surface surface-veil",
     /* Definition comes from the edge, not the shadow. See .panel-edge. */
     "panel-edge",

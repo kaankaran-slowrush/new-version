@@ -9,12 +9,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <TopNav />
       {/* Clears the fixed pill: 60px nav + 16px inset + breathing room.
 
-          `data-plane-scope` is how the spatial theme turns all twelve product
-          routes into floating planes from ONE rule in globals.css, instead of
-          twelve edits to twelve `<main>` elements. The rule targets
-          `[data-plane-scope] > main`; the attribute is inert under light and dim.
+          `data-plane-scope` is how all twelve product routes become floating
+          planes from ONE rule in globals.css, instead of twelve edits to twelve
+          `<main>` elements. The rule targets `[data-plane-scope] > main`.
           Bare `main` would have been wrong — /docs' main is a flex child beside a
-          persistent index and the 404's is a min-h-dvh centring grid. */}
+          persistent index and the 404's is a min-h-dvh centring grid, so a plane on
+          either would be a full-viewport panel with content floating in it. */}
       <div data-plane-scope className="pt-24">
         {children}
       </div>

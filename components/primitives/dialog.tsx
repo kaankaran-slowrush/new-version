@@ -50,7 +50,13 @@ import { cn } from "@/lib/cn";
 const dialogPopupVariants = cva(
   [
     "relative m-auto flex w-full flex-col",
-    "rounded-3xl bg-surface text-ink shadow-md",
+    /* `bg-surface-solid`, not `bg-surface`, and `panel-edge`, which this was the
+       only overlay missing. Both for the same reason: the plane is legible because
+       --backdrop-cap imposes a worst case behind it, and NOTHING imposes anything
+       behind a dialog. It lands over content, over generated media, over whatever
+       the route happens to be showing. So it occludes rather than tints, and it
+       draws its own boundary rather than relying on a fill that is not there. */
+    "panel-edge rounded-3xl bg-surface-solid text-ink shadow-md",
     "p-6 outline-none",
     /* Modals stay centered — see UX NOTES. No `origin-(--transform-origin)`. */
     "origin-center",
@@ -113,7 +119,15 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         <Dialog.Backdrop
           className={cn(
             "fixed inset-0 z-(--z-dialog) min-h-dvh",
-            "bg-ink/35 backdrop-blur-[2px]",
+            /* `--color-scrim-dialog`, and it was `bg-ink/35` — which on this ground meant a
+       NEAR-WHITE 35% wash over the whole viewport, because `ink` is near-white
+       here. Every modal in the product bleached the page behind it. A scrim's job
+       is to push the page back; this one was pulling it forward.
+
+       No `backdrop-blur-[2px]` either. That was a full-viewport compositor pass
+       blurring a field the plane has already blurred at 40px — the most expensive
+       no-op available. The scrim's own opacity does the separating instead. */
+    "bg-scrim-dialog",
             "transition-opacity duration-(--duration-slow) ease-(--ease-out-quint)",
             "data-starting-style:opacity-0 data-ending-style:opacity-0",
             backdropClassName,

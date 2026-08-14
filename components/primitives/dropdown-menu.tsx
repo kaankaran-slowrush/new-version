@@ -54,7 +54,7 @@ import { cn } from "@/lib/cn";
 /* Shared by both variants. Origin-aware entry lives here. */
 const menuPopupBase = [
   "min-w-[var(--anchor-width)] max-h-[var(--available-height)] overflow-y-auto",
-  "panel-edge rounded-2xl bg-surface shadow-md outline-none",
+  "panel-edge rounded-2xl bg-surface-solid shadow-md outline-none",
   "origin-(--transform-origin)",
   "transition-[opacity,scale,translate]",
   "duration-(--duration-fast) ease-(--ease-out-quint)",

@@ -20,7 +20,7 @@ export default function DocsIntro() {
           {[
             {
               t: "Tokens are the contract",
-              d: "Three layers: raw OKLCH ramps, semantic aliases, component knobs. Components reference only the semantic layer, so retheming is one file.",
+              d: "Three layers: raw OKLCH ramps, semantic aliases, component knobs. Components reference only the semantic layer — which is what let the whole product move from a light opaque ground to a dark translucent one by remapping one layer. Card has 121 call sites and none of them changed.",
               href: "/docs/foundations/color",
             },
             {
@@ -30,7 +30,7 @@ export default function DocsIntro() {
             },
             {
               t: "Accessibility is load-bearing",
-              d: "The atmospheric treatment is defensible only because it degrades honestly: contrast, transparency, and motion preferences all have real fallbacks.",
+              d: "Translucency is the language, not a coat of paint on it — so prefers-contrast and prefers-reduced-transparency get a whole second rendering of the product, opaque and dark, rather than a slightly flatter version of this one.",
               href: "/docs/foundations/accessibility",
             },
             {
@@ -57,14 +57,22 @@ export default function DocsIntro() {
       >
         <ol className="space-y-5">
           <li className="rounded-2xl bg-surface p-5 shadow-sm">
-            <h3 className="mb-1.5 text-base">1 · Glass is chrome only — except under Spatial</h3>
+            <h3 className="mb-1.5 text-base">
+              1 · Glass is the material, and the backdrop cap is what pays for it
+            </h3>
             <p className="text-sm text-ink-secondary">
-              Translucent, blurred surfaces are reserved for persistent navigational
-              chrome — the topbar, the side rails, the composer. Never body content
-              (reading beats effect) and never transient overlays like menus, where
-              translucency over arbitrary content is simply unreadable. Every glass
-              surface carries a <Code>barrier layer</Code>: a solid low-opacity fill
-              beneath the content so text contrast is guaranteed rather than lucky.
+              Translucency used to be reserved for navigational chrome, because
+              translucency over arbitrary content is unreadable. That rule is inverted
+              here, once and deliberately: the page&apos;s own plane is glass, and it is
+              defensible only because <Code>--backdrop-cap</Code> imposes a worst case
+              behind it — a black layer that pins the brightest pixel any photograph can
+              produce to 0.22 luminance, so every contrast figure in the system is a
+              measurement rather than a hope. Where nothing imposes a worst case, nothing
+              is translucent: overlays open over generated media or anything else, so
+              dialogs, menus, popovers and tooltips <strong>occlude</strong> at{" "}
+              <Code>--color-surface-solid</Code> (0.94) with no backdrop-filter at all.
+              Chrome keeps its <Code>barrier layer</Code> — a solid low-opacity fill
+              beneath the content — for the same reason.
             </p>
           </li>
           <li className="rounded-2xl bg-surface p-5 shadow-sm">
@@ -74,18 +82,25 @@ export default function DocsIntro() {
               its ground, separated only by a soft shadow. It fails WCAG and vanishes
               in sunlight. It is allowed on exactly one class of element: small
               tactile controls whose pressed-versus-unpressed physicality is the
-              information, and which carry no text. Toggle tracks, segmented wells,
-              slider grooves. Nothing else.
+              information. Toggle tracks, segmented wells, slider grooves. Nothing else.
+              This rule used to add &ldquo;and which carry no text&rdquo;, which was
+              wrong about the code — SegmentedControl and FilterPills both put{" "}
+              <Code>text-ink</Code> on <Code>.neu-raised</Code>. The real constraint is
+              narrower and harder: the raised fill has to hold body-text contrast, which
+              is why it is 38% and opaque (9.2:1 for ink) rather than the near-white a
+              glass language reaches for first.
             </p>
           </li>
           <li className="rounded-2xl bg-surface p-5 shadow-sm">
             <h3 className="mb-1.5 text-base">3 · Motion must say something</h3>
             <p className="text-sm text-ink-secondary">
-              Five named motions exist, each tied to a specific state. The ambient
-              background drift is the only decorative-looking one, and it earns its
-              place by giving the glass something to refract — without it, the
-              translucency is wasted. If you cannot say what a motion tells the user,
-              it does not ship.
+              Every named motion is tied to a specific state. This principle used to
+              carve out one exception — the ambient background&apos;s drift, which earned
+              its place by giving the glass something to refract. There is no exception
+              now: the drifting layer was replaced by a photograph that never moves, and
+              what gives the glass something to reveal is the plane scrolling over a{" "}
+              <Code>fixed</Code> backdrop, which costs no animation frame at all. If you
+              cannot say what a motion tells the user, it does not ship.
             </p>
           </li>
         </ol>
@@ -93,11 +108,13 @@ export default function DocsIntro() {
 
       <UXNote title="How to read these docs">
         <p>
-          Foundations first — <strong>Color</strong> and{" "}
-          <strong>Elevation &amp; glass</strong> explain most of the visual identity
-          in ten minutes. Then <strong>Porting guide</strong> if you are adopting
-          this on a different stack. Component pages are reference material; you do
-          not need to read them front to back.
+          Foundations first — <strong>Color</strong> and <strong>Spatial</strong>{" "}
+          explain most of the visual identity in ten minutes, and Spatial is the
+          language itself rather than a theme within it. <strong>Elevation &amp; glass</strong>{" "}
+          then covers what lift means on a ground this dark. Take{" "}
+          <strong>Porting guide</strong> if you are adopting this on a different stack.
+          Component pages are reference material; you do not need to read them front to
+          back.
         </p>
       </UXNote>
     </>

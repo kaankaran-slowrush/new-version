@@ -5,10 +5,25 @@
    Three layers, in dependency order:
 
      1. BASE      Raw perceptual ramps in OKLCH. Never referenced by a component.
-     2. SEMANTIC  Purpose-named aliases ("what is this for"). Components use ONLY
-                  these. Retheming the product = remapping this layer.
+     2. SEMANTIC  Purpose-named ("what is this for"). Components use ONLY these.
+                  Retheming the product = remapping this layer.
      3. COMPONENT Per-component knobs. Lets a consumer retune one component
                   without disturbing semantics.
+
+   LAYER 2 NO LONGER ALIASES LAYER 1, and that is a real change worth stating
+   rather than hiding. It used to: `--color-ink: var(--color-graphite-950)` and so
+   on, 45 tokens deep. It cannot any more, because this language is translucent and
+   most of the surface layer is an ALPHA — `oklch(100% 0 0 / 0.07)` is not a step on
+   any ramp, and a ramp step is opaque by construction. Composition replaced
+   aliasing.
+
+   So layer 1 is now the PALETTE OF RECORD rather than a live dependency: the hues
+   every semantic value was derived from (accent 224, success 150, warning 70,
+   danger 25, neutral 255), the evidence for why those five are far enough apart
+   that "interactive" and "healthy" can never be the same signal, and the thing a
+   retheme starts from. Nothing references it, and grep will tell you so — that is
+   the honest state, not an oversight to fix by inventing aliases that would only
+   round the values.
 
    Why OKLCH: it is perceptually uniform, so a ramp built by stepping lightness
    produces evenly-spaced steps to the human eye — unlike HSL, where e.g. yellow
@@ -129,213 +144,260 @@
      The only layer components are allowed to reference.
      --------------------------------------------------------------------------- */
 
-  /* Surfaces. Elevation is expressed as small lightness steps, not big jumps —
-     you should feel the hierarchy rather than see it (the "squint test": blur
-     your eyes and structure should still read, with nothing jumping out). */
-  /* THE PAGE GROUND IS NOT THE TOP OF THE RAMP, and that is the design rather
-     than an oversight. In a conventional light theme the canvas is the lightest
-     thing and surfaces sit on it at the same value; here the surfaces are white
-     and the ground is deliberately BELOW them, so a card reads as an object
-     resting on a page instead of as a region of it.
+  /* ===========================================================================
+     THE SURFACE LADDER
 
-     WHY IT IS NOT WHITE, having been tried. Set the canvas to 100% and it equals
-     `--color-surface`, so every card survives only on its hairline border — but
-     the real damage is that the INSET/RAISED RELATIONSHIP INVERTS. `sunken` (94%)
-     becomes the only filled thing on the page, so an input reads louder than the
-     card containing it: the thing that is meant to be recessed becomes the most
-     prominent element on screen. The glass chrome also loses its entire
-     justification, because a flat white ground gives it nothing to refract.
+     Four tiers, and each one exists because something in the product needs it.
+     Every value below is a composite — this language is translucent, so a token
+     is not a colour until you know what is behind it. The numbers are luminances
+     measured over the WORST CASE: a peak-white pixel in the backdrop photograph,
+     which the shipped image genuinely contains.
 
-     96.5% is where it landed: light enough to read as a bright page rather than
-     as atmosphere, dark enough that the ordering still holds —
-       sunken 94%  <  canvas 96.5%  <  surface 100%
-     which is exactly the sentence the elevation system needs to stay true. Note
-     `sunken`'s job is to read inset against its PARENT, and its parent is almost
-     always a card, not the canvas — so it did not have to move.
+       backdrop, capped                 0.3185   the photograph, held under --backdrop-cap
+       plane      (--plane-fill)        0.0388   the page. One per view.
+       card       (--color-surface)     0.0602   raised. 1.24x the plane (see below).
+       card edge  (--color-line)        0.0873   1.55x the plane (see the padding-box note)
+       sunken     (--color-surface-sunken) 0.0318  inset. The card is 1.35x it.
+       overlay    (--color-surface-solid)  0.0114  occludes. Not a tier — see below.
 
-     THE GROUND'S LIGHTNESS AND CHROMA LIVE HERE, ONCE. Two places need them: this
-     token, and the animated ground layer in AmbientBackground, which rebuilds the
-     same colour with a moving hue. They used to be written out twice with a comment
-     saying they must match, which is a drift waiting to happen — and the kind that
-     shows up as a seam nobody can explain. They are deliberately NOT the
-     graphite-200 ramp step any more: pinning the ground to a ramp value meant the
-     ramp had to move whenever the ground did, and at 96.5% that would have pushed
-     graphite-200 above graphite-100 and broken monotonicity. */
-  --canvas-l: 96.5%;
-  --canvas-c: 0.007;
+     RAISED IS LIGHTER, INSET IS DARKER. That sentence is the elevation system, and
+     it is why `sunken` sits below the card rather than above it: a groove and a
+     card must never be confusable, and lightness is the only channel doing that
+     work here.
+
+     1.24x IS DERIVED; 1.27x IS WHAT THE GPU ACTUALLY PRODUCES. The derivation
+     assumed no blur, because when it was done the product's `backdrop-filter` was
+     silently dead (Lightning CSS was dropping the standard property — see the note
+     in globals.css). With the blur live the plane composites slightly darker,
+     because a 40px blur smears the backdrop's peak-white pixel into its neighbours
+     instead of letting it sit under the panel at full strength. Sampled from
+     rendered pixels: card/plane 1.27x, card/sunken 1.34x. The derivation is the
+     conservative one and every value here is solved against it, which is the right
+     way round — the arithmetic should be the pessimist.
+
+     THE CARD TIER IS NOT DECORATION. It was `transparent` for one release, on a
+     rule borrowed from a single-screen mockup — "one plane, no nested surfaces".
+     The product has fifteen grids and rails of PEER cards, and with nothing
+     painting, three model cards side by side read as one wall of text. It also
+     silently broke the type system: section-header.tsx states the kit's doctrine
+     as "the serif/sans boundary and the canvas/surface boundary are the same
+     boundary", and with no surface there was no boundary for it to be.
+     =========================================================================== */
+
+  /* THE FAILSAFE FLOOR, not the visible ground. The photograph is a fixed layer
+     above this (components/chrome/spatial-backdrop.tsx); this is what shows if the
+     image is still loading, blocked, or missing. It must be darker than the cap or
+     the plane's arithmetic breaks the moment the image fails — at 24% L it
+     composites to 0.014, well under the 0.22 ceiling. */
+  --canvas-l: 24%;
+  --canvas-c: 0.012;
   --color-canvas: oklch(var(--canvas-l) var(--canvas-c) 255);
-  --color-surface: white; /* raised: cards, panels, menus */
-  --color-surface-sunken: var(--color-graphite-100); /* inset: inputs, tracks, fills */
 
-  /* TRANSLUCENT CONTENT SURFACE — the second tier of transparency.
-     `.glass` (blur + 55% fill) is licensed for navigational chrome ONLY, and that
-     rule is correct: backdrop-filter is compositor-expensive and a sheer fill over
-     arbitrary content makes contrast a matter of luck. But that rule was banning
-     *glass*, not *translucency*. This is the safe tier:
+  /* THE CARD. A white alpha, so it lifts whatever it lands on by the same
+     perceptual amount whether that is the plane or a darker region of it — the
+     same argument the line and state tokens below already make.
 
-       • NO backdrop-filter — so it costs nothing and never blurs text behind it.
-       • 80%, not 55% — high enough that contrast is guaranteed, low enough that a
-         wash passing underneath visibly tints the card (~18/255 of colour shift,
-         which is the entire point).
-       • Legitimate because WE CONTROL THE BACKDROP. The ambient layer is ours, so
-         its darkest point is knowable and the worst case is computable rather than
-         hoped for. Measured on the darkest wash core: ink 18.2:1, ink-secondary
-         8.4:1, ink-tertiary 5.1:1. That is why this is allowed and glass-on-content
-         still is not.
+     0.07 IS SOLVED, NOT CHOSEN. It is the largest value that keeps every ink level
+     above 4.5:1 on the card while putting the card a readable distance from the
+     plane. Above ~0.08 --color-ink-tertiary fails; below ~0.05 the card stops
+     separating (roughly 1.10x is where two large adjacent fills merge). At 0.07:
+     1.24x separation, and tertiary at 5.10:1. */
+  --color-surface: oklch(100% 0 0 / 0.07);
 
-     Content surfaces only. Transient overlays (menus, popovers, dialogs) stay fully
-     opaque — they land over content we do NOT control, which is the original rule
-     and it still holds. See the nesting guard on `.surface-veil` in globals.css. */
-  --color-surface-veil: oklch(100% 0 0 / 0.8);
+  /* A groove cut into whatever it sits in. Black rather than a lighter step,
+     because "inset is darker" has to survive on a ground this dark; a lighter
+     inset would be indistinguishable from the card containing it. Ink reads
+     11.6:1 on it. */
+  --color-surface-sunken: oklch(0% 0 0 / 0.28);
+
+  /* Historically a separate, safer tier of translucency than glass. It is now the
+     same value as --color-surface, and the honest reason is that `.surface-veil`
+     has been INERT on every Card since Tailwind v4: the class lives in
+     @layer components and `bg-surface` is a utility, so the utility wins and the
+     veil contributes only its `background-clip`. It genuinely paints in exactly
+     one place — the inert composer replica on the dashboard, which carries no
+     `bg-*`. Kept, at the same value, so nothing that references it can drift away
+     from the card tier; do not expect it to do work. */
+  --color-surface-veil: oklch(100% 0 0 / 0.07);
 
   /* ---------------------------------------------------------------------------
-     OVER MEDIA — a legible backing for a chip or a control sitting ON a photo.
+     OCCLUSION — the material for anything that must hide what passes beneath it.
 
-     There were seven of these written inline as `bg-surface/85` and `bg-surface/92`
-     across model-card, the home rail, the run-history grid and the session canvas,
-     and the spatial theme turned all seven into bugs at once: `--color-surface` is
-     `transparent` there, and `transparent` at 85% opacity is still transparent — so
-     every "Fast" and "Deprecated" badge lost its backing and sat as near-white text
-     directly on a bright photograph.
+     NOT a surface tier, and the distinction is the whole point. Every tier above
+     is legible because of `--backdrop-cap`: the system knows the worst case behind
+     the plane because it imposes it. Nothing imposes anything behind a dropdown.
+     A menu can open over generated media, over a bright photograph, over another
+     menu — so it cannot be translucent at any value and still carry a promise.
 
-     They are a NAMED PURPOSE, not an opacity tweak: media is the one surface in the
-     product whose colour the system does not control, so a label on top of it needs
-     a guaranteed backing rather than a translucent tint of whatever the theme's card
-     colour happens to be. That is a semantic token.
+     0.94 puts every ink level above 15:1 with no worst-case reasoning required.
+     The glass reads through the specular bevel in --shadow-md, the hairline and
+     --shadow-lg; it does not read through see-through. This is why overlays get
+     no backdrop-filter either (see /docs/foundations/spatial).
 
-     TWO OF THEM, because a chip and a control need different amounts. The chip is a
-     label — it may let the image read through. The control is a target, and it has
-     to look pressable, which needs more of the image hidden. The values match the
-     inline opacities they replace exactly, so light and dim render identically.
+     The over-media pair is the same idea at two strengths, for a label or a
+     control sitting directly ON a photograph — the one surface in the product
+     whose colour the system does not control. A chip may let the image read
+     through; a control is a target and has to look pressable. Measured against a
+     blown-out white pixel: 10.6:1 for the chip.
      --------------------------------------------------------------------------- */
-  --color-chip-over-media: oklch(100% 0 0 / 0.85);
-  --color-control-over-media: oklch(100% 0 0 / 0.92);
+  --color-surface-solid: oklch(16% 0.012 255 / 0.94);
+  --color-chip-over-media: oklch(20% 0.012 255 / 0.85);
+  --color-control-over-media: oklch(20% 0.012 255 / 0.92);
 
-  /* Hover and pressed fills are ALPHA INK, not solid ramp steps.
-     They used to be graphite-100/200. That worked only while the ground was
-     near-white: the moment canvas moved to 96.5%, a solid 94% hover fill was
-     *lighter* than the ground it sat on in some places and far too heavy on a
-     white card in others — one value cannot be right on canvas, on a white card,
-     on a translucent card and on a sunken input at once. An ink overlay darkens
-     whatever it lands on by the same perceptual amount everywhere. This is exactly
-     the argument the border tokens below already make, applied to state. */
-  --color-surface-hover: oklch(15% 0.01 255 / 0.035);
-  --color-surface-active: oklch(15% 0.01 255 / 0.07);
+  /* STATE FILLS, and there are two of them because there are two situations.
 
-  /* Text — four levels. Two is not a hierarchy, it's a flat page. */
-  --color-ink: var(--color-graphite-950); /* primary / headings / values */
-  --color-ink-secondary: var(--color-graphite-700); /* supporting body */
-  /* 50.5%, and it left the ramp for the same reason ink-muted did. graphite-600
-     (51.5%) measured 4.43:1 for metadata sitting on GLASS chrome at the frame edge,
-     where the lava is undimmed by the scrim. This is the level real information
-     lives at, so it has to clear 4.5:1 against every background in the product. */
-  --color-ink-tertiary: oklch(50.5% 0.015 255); /* metadata, timestamps, captions */
+     `--color-surface-hover` is for something TRANSPARENT AT REST — a ghost button,
+     a table row, a menu item. The alpha lands on whatever is behind it and darkens
+     or lightens it by a fixed perceptual amount.
+
+     `--color-surface-raised-hover` is for something ALREADY PAINTING the card tier
+     — a secondary Button, a solid FilterPill. `hover:bg-*` REPLACES a fill rather
+     than overlaying it, so such a control hovering with the first token goes
+     0.07 -> 0.09: a 1.03x move, which is no hover at all. One token cannot serve
+     both roles, because raising it to 0.14 would turn every ghost-button hover
+     into a flash. Two situations, two tokens. */
+  --color-surface-hover: oklch(100% 0 0 / 0.09);
+  --color-surface-active: oklch(100% 0 0 / 0.14);
+  --color-surface-raised-hover: oklch(100% 0 0 / 0.14);
+
+  /* DISABLED IS TRANSPARENT, and that is not "no style" — it is the correct style.
+     An input's affordance is its recess (see input.tsx), so disabling it removes
+     the well. On a light theme "flat" meant a white input on a white card. Here
+     the card tier is RAISED, so painting a disabled control `--color-surface`
+     would make it brighter than an enabled one — in a language where raised means
+     interactive, exactly backwards. Flat means flat. */
+  --color-surface-disabled: transparent;
+
+  /* Text — four levels. Two is not a hierarchy, it's a flat page.
+     Measured on the CARD, which is the worst ground for most text now that cards
+     paint again: ink 8.74 · secondary 6.23 · tertiary 5.10. On the bare plane every
+     level is higher. */
+  --color-ink: oklch(97% 0.006 255); /* primary / headings / values */
+  --color-ink-secondary: oklch(86% 0.01 255); /* supporting body */
+  /* THE BINDING CONSTRAINT of the whole palette. The plane's alpha and the card's
+     alpha were both solved against THIS level, not against --color-ink: it is the
+     level real information lives at, so it has to clear 4.5:1 on every surface in
+     the product, and it is the first one to fail as either tier lightens. */
+  --color-ink-tertiary: oklch(80% 0.012 255); /* metadata, timestamps, captions */
   /* PLACEHOLDER AND DISABLED ONLY — and this restriction is the whole point.
-     It was graphite-500 (63.5%), measuring 2.88:1 on the new sunken fill. 55% brings
-     that to 4.07:1 on sunken and 4.85:1 on white.
-
-     4.07:1 does not reach 4.5:1, and it cannot: ink-tertiary has to be dark enough
-     to survive on glass over the lava (50.5%), and this level has to stay visibly
-     LIGHTER than tertiary or the four-level hierarchy collapses into three. Those
-     two requirements do not both fit above 4.5:1.
-
-     That is acceptable for exactly this role and no other. WCAG 1.4.3 exempts text
-     in an inactive component, and placeholder text is transient hint text that
-     duplicates a visible label. So the rule is absolute:
+     2.62:1 on the card, and that is correct rather than a defect: a disabled
+     control that reads at full contrast is not disabled, and WCAG 1.4.3 exempts
+     both inactive components and placeholder hint text that duplicates a visible
+     label. The rule is absolute:
 
        NO INFORMATION MAY LIVE ONLY IN ink-muted.
 
      Every informational use — table headers, timestamps, hints, captions, counts,
-     eyebrows — is `ink-tertiary`. If you are reaching for muted on something a user
-     needs to read, you want tertiary. */
-  --color-ink-muted: oklch(55% 0.015 255); /* placeholder + disabled ONLY */
+     eyebrows — is `ink-tertiary`. If you are reaching for muted on something a
+     user needs to read, you want tertiary. Do not "fix" this value. */
+  --color-ink-muted: oklch(62% 0.014 255); /* placeholder + disabled ONLY */
 
-  /* Borders. Low-opacity rather than solid hex, so one token works on canvas,
-     on a card, and on a sunken fill alike.
+  /* Borders. White alphas rather than solid steps, so one token works on the
+     plane, on a card, and on a sunken fill alike.
 
-     These are stronger than they were. Definition of elevated surfaces has moved
-     from shadow to border (see the elevation block below), so `--color-line` now
-     has to carry a visible 1.5px edge rather than a hairline nobody looks at.
-     `--color-line-inner` is the old faint value, kept for INTERNAL dividers —
-     table rows, menu rules, footer tops — which must stay quiet or every table
-     turns into a spreadsheet. */
-  --color-line: oklch(15% 0.01 255 / 0.14); /* panel edges — visible on purpose */
-  --color-line-inner: oklch(15% 0.01 255 / 0.07); /* internal dividers — quiet */
-  --color-line-soft: oklch(15% 0.01 255 / 0.05); /* faintest separation */
-  --color-line-strong: oklch(15% 0.01 255 / 0.24); /* hover / emphasis */
+     `--color-line` IS THE CARD EDGE, and it is doing more work than a hairline
+     normally would: with no drop shadow available on a ground this dark, the edge
+     is most of what says "object". It composites 1.55x against the plane.
 
-  /* THE HIGH-CONTRAST EDGE. Only used inside `prefers-contrast: more`, and it is a
-     semantic token rather than a ramp step because that block has to work in both
-     themes. It was `--color-graphite-700` written out four times — a 40% grey, which
-     is a strong edge on white and an invisible one on the dim theme's 34% surface.
-     Opaque on purpose: a user asking for more contrast is asking for a real border,
-     not a heavier alpha. */
-  --color-border-contrast: var(--color-graphite-700);
+     WATCH THE PADDING-BOX SUBTLETY: `.panel-edge` sets `background-clip:
+     padding-box`, so a card's own alpha fill does NOT paint under its border. The
+     edge therefore composites over the PLANE, not over the card — which is why it
+     reads at 1.55x rather than the 1.25x you would get by compositing it over the
+     card's own fill. Remove the clip and the edge dilutes by a third. */
+  --color-line: oklch(100% 0 0 / 0.14); /* panel edges — visible on purpose */
+  --color-line-inner: oklch(100% 0 0 / 0.08); /* internal dividers — quiet */
+  --color-line-soft: oklch(100% 0 0 / 0.05); /* faintest separation */
+  /* THE STRONG CONTROL EDGE — badges, pills, checkbox and radio boxes, the
+     EmptyState frame, ActivityStrip's empty cells, GlassPanel's `bordered`.
+     This comment used to claim it was "the region divider now that no card edge
+     performs that job". It never was: grep found zero region uses, the card edge
+     was never actually retired, and repurposing it would silently restyle nine
+     control components. It is a control edge. */
+  --color-line-strong: oklch(100% 0 0 / 0.3);
 
-  /* THE PRIMARY ACTION IS INK, NOT ACCENT.
-     These were the same token, and that conflated two different jobs. A saturated
-     accent fill on the one high-emphasis button means the loudest colour on the
-     page is spent on a control rather than on information — and at this accent's
-     lightness it read as petrol green, which is a status colour's job.
+  /* THE HIGH-CONTRAST EDGE. Only used inside `prefers-contrast: more`. Opaque
+     white on purpose: a user asking for more contrast is asking for a real border,
+     not a heavier alpha. It is a token rather than a literal because that query
+     also takes the plane opaque, so the value has to be right against both. */
+  --color-border-contrast: oklch(100% 0 0 / 0.45);
 
-     Near-black is the stronger move and the more serious one: it is unmistakably
-     THE action, it never competes with a status colour, and it leaves the accent
-     free to mean "this is data" and "this is selected". White on it measures
-     19.7:1. Hover LIGHTENS rather than darkens, because there is nowhere darker
-     to go from 15%. */
-  --color-action: var(--color-graphite-950);
-  --color-action-hover: var(--color-graphite-800);
-  --color-action-ink: white; /* text ON the action fill */
+  /* THE PRIMARY ACTION IS INK, NOT ACCENT — and on this ground "ink" means near
+     white. The rule being preserved is "the primary action is the highest-contrast
+     object on screen"; on a dark ground the only way to satisfy it is to invert.
+     It is also the only fully opaque object most screens contain, which is what
+     makes it read as definitely-not-part-of-the-glass. 16.1:1 fill to label. */
+  --color-action: oklch(96% 0.004 255);
+  --color-action-hover: oklch(90% 0.005 255);
+  --color-action-ink: oklch(20% 0.01 255); /* text ON the action fill */
 
-  /* Accent — data, selection, links. No longer the primary button. */
-  --color-accent: var(--color-signal-700);
-  --color-accent-hover: var(--color-signal-800);
-  --color-accent-text: white; /* text ON accent */
-  --color-accent-soft: oklch(42% 0.115 224 / 0.1); /* tinted wash — tracks signal-700 */
-  --color-accent-ink: var(--color-signal-700); /* accent-colored text on light */
+  /* Accent — data, selection, links. No longer the primary button.
+     Lighter and less saturated than a light-ground palette would need: a saturated
+     mid-tone that sings on white goes muddy here, and every one of these is used
+     as TEXT somewhere. The `-soft` alphas run at 0.18 rather than 0.12 because a
+     tint over a translucent plane loses roughly a third of its apparent strength
+     to the photograph showing through. */
+  --color-accent: oklch(82% 0.105 224);
+  --color-accent-hover: oklch(87% 0.095 224);
+  --color-accent-text: oklch(18% 0.01 255); /* text ON accent — 11.1:1 */
+  --color-accent-soft: oklch(82% 0.105 224 / 0.18); /* tinted wash */
+  --color-accent-ink: oklch(82% 0.105 224); /* accent-colored text */
 
-  /* THE -ink RULE. A `-soft` fill is its own hue at 8–12% alpha, so it darkens the
-     ground with the SAME colour as the text sitting on it — contrast drops instead
-     of holding. Text on a plain surface may use the base token; text on a same-hue
-     `-soft` fill must use `-ink` (the 700 step). Measured: warning on warning-soft
-     was 3.99:1 with the base token and is 5.55:1 with -ink. */
+  /* THE -ink RULE, which still holds and still matters. A `-soft` fill is its own
+     hue at low alpha, so it shifts the ground with the SAME colour as the text
+     sitting on it and contrast drops instead of holding. Text on a plain surface
+     may use the base token; text on a same-hue `-soft` fill must use `-ink`. Here
+     the base and the -ink step happen to be equal, because on a dark ground the
+     legible value and the fill value converge — keep both names anyway, or every
+     call site has to re-derive the rule. */
 
-  /* Status */
-  --color-success: var(--color-verdant-600);
-  --color-success-soft: oklch(52% 0.095 150 / 0.12);
-  --color-success-ink: var(--color-verdant-700); /* success text ON success-soft */
-  --color-warning: var(--color-ember-600);
-  --color-warning-soft: oklch(57% 0.13 58 / 0.12);
-  --color-warning-ink: var(--color-ember-700); /* warning text ON warning-soft */
-  --color-danger: var(--color-rust-600);
-  --color-danger-soft: oklch(52% 0.165 25 / 0.08);
-  --color-danger-ink: var(--color-rust-700); /* danger text ON danger-soft */
-  --color-idle: var(--color-graphite-400);
+  /* Status. Each a different hue from the accent, so "interactive" and "healthy"
+     can never be the same signal. Measured on the card: 5.72 / 6.22 / 5.04. */
+  --color-success: oklch(82% 0.125 150);
+  --color-success-soft: oklch(82% 0.125 150 / 0.18);
+  --color-success-ink: oklch(82% 0.125 150);
+  --color-warning: oklch(87% 0.115 70);
+  --color-warning-soft: oklch(87% 0.115 70 / 0.18);
+  --color-warning-ink: oklch(87% 0.115 70);
+  --color-danger: oklch(83% 0.13 25);
+  --color-danger-soft: oklch(83% 0.13 25 / 0.16);
+  --color-danger-ink: oklch(83% 0.13 25);
+  /* TEXT ON THE DANGER FILL, and it exists because the fill inverted. On a light
+     ground `--color-danger` was a mid red and white sat on it at 5:1. Here it is a
+     light salmon, and white on it measures 1.89:1 — so the destructive button was
+     the least legible control in the product. 9.9:1 with dark ink. A fill token and
+     its label token have to move together; `--color-accent-text` already existed
+     for exactly this reason and this is its missing sibling. */
+  --color-danger-text: oklch(18% 0.01 25);
+  --color-idle: oklch(58% 0.014 255);
 
-  /* Glass. See the barrier-layer note in globals.css — glass is for
-     navigational chrome only, never for body content.
+  /* GLASS IS THE PLANE'S MATERIAL. Chrome and content are made of the same thing
+     here, which is the opposite of what this kit said for two releases — and the
+     reason it can be: the backdrop cap is what buys translucency the contrast
+     guarantee that used to make glass-on-content indefensible.
 
-     38%, not 55%. The fill went DOWN and the blur went UP, and those two moves
-     are the same move: what makes a heavily-blurred panel readable is not the
-     opacity of its fill, it is that the blur has destroyed the high-frequency
-     detail behind it. A 44px blur turns whatever scrolls under the bar into a
-     smooth wash, and a smooth wash can be sat on at 38% where a sharp one could
-     not. Measured against a pessimistic backdrop (a quarter of the bar covered by
-     a black button): ink 14.3:1, ink-secondary 6.5:1.
+     All four values track the plane, not just the fill: a nav blurred at 44px
+     above a plane blurred at 40px is a difference you can see at the seam where
+     they meet, and it reads as a bug. */
+  --color-glass: var(--plane-fill);
+  --color-glass-barrier: oklch(14% 0.012 255 / 0.34); /* the guaranteed-contrast layer */
 
-     This is what lets the colour of the page genuinely come through the chrome,
-     rather than the chrome being a white bar that happens to be slightly see-through. */
-  --color-glass: oklch(100% 0 0 / 0.38);
-  --color-glass-barrier: oklch(100% 0 0 / 0.18); /* the guaranteed-contrast layer */
+  /* THE DIALOG SCRIM. Black, and this used to be `bg-ink/35` written inline in
+     dialog.tsx — a NEAR-WHITE 35% wash over the whole viewport, because `ink` is
+     near-white here. Every modal in the product bleached the page behind it.
 
-  /* THE AMBIENT SCRIM, tokenised so it can invert with the theme. It lifts the
-     middle of the frame away from the drifting blobs, which is what keeps ink
-     legible over the busiest part of the ambient layer. On a light ground it
-     washes toward white; the dim theme washes toward black instead. These were
-     three literals inside AmbientBackground until the dim theme needed them. */
-  --color-scrim-strong: oklch(98.5% 0.004 255 / 0.42);
-  --color-scrim-mid: oklch(98.5% 0.004 255 / 0.3);
-  --color-scrim-soft: oklch(98.5% 0.004 255 / 0.14);
+     0.55 rather than 0.35 because it is now also doing the separating that a
+     `backdrop-blur-[2px]` used to attempt. That blur is gone: it was a
+     full-viewport compositor pass blurring a field the plane has already blurred
+     at 40px, which is the most expensive no-op available. */
+  --color-scrim-dialog: oklch(0% 0 0 / 0.55);
+
+  /* THE AMBIENT SCRIM. No product route paints this any more — the photograph
+     replaced the ambient layer — but `.ambient-ground` in globals.css still uses
+     it for docs demos that need a representative backdrop inside a fixed box. */
+  --color-scrim-strong: oklch(18% 0.01 255 / 0.26);
+  --color-scrim-mid: oklch(18% 0.01 255 / 0.18);
+  --color-scrim-soft: oklch(18% 0.01 255 / 0.08);
+
 
   /* ---------------------------------------------------------------------------
      TYPE
@@ -500,25 +562,64 @@
   --radius-full: 9999px; /* capsules: badges, avatars, the topbar */
 
   /* ---------------------------------------------------------------------------
-     ELEVATION
-     Light-mode lift = a 1px ring plus two soft depths. The ring does the edge
-     definition; the blurs do the float. Never a single hard drop shadow.
+     ELEVATION — A BEVEL AND A CONTACT SHADOW, NEVER A BLUR.
+
+     A drop shadow works by removing light, and at the plane's luminance of 0.039
+     there is almost none left to remove. Any blur strong enough to see reads as
+     dirt on the glass rather than as lift — which is exactly what the first pass
+     at this language concluded when it set sm/md to `none` outright and lost every
+     hover affordance in the product along with them.
+
+     The kit already had the dark-ground answer written in two places: `.glass` and
+     the plane both express lift as a SPECULAR TOP BEVEL — a bright hairline along
+     the top inside face, the way real glass catches light on its bevel — plus a
+     tight contact shadow underneath. That is the vocabulary; these tokens reuse it
+     rather than inventing a second one.
      --------------------------------------------------------------------------- */
-  --shadow-xs: 0 0 0 1px oklch(15% 0.01 255 / 0.06);
-  /* NOTE: sm and up carry NO ring. Elevated surfaces get a real 1.5px border
-     instead, and a ring underneath one produces a visible doubled edge — the
-     single most common way a light UI starts looking cheap. These are pure blur
-     and lift; the border does the edge. */
+  /* xs STAYS A RING, matching its shape on every ground: it IS an edge, not a
+     lift. This matters because its consumers — StatTile `panel`, solid
+     FilterPills, Accordion `separated` — carry no `.panel-edge`, so the ring is
+     their only boundary, and it cannot double against a border they do not have. */
+  --shadow-xs: 0 0 0 1px oklch(100% 0 0 / 0.1);
+  /* NOTE: sm and up carry NO ring. Elevated surfaces get a real border instead,
+     and a ring underneath one produces a visible doubled edge — the single most
+     common way a UI starts looking cheap. The bevel is INSET, so it sits inside
+     the border rather than fighting it. */
   --shadow-sm:
-    0 1px 2px -1px oklch(15% 0.01 255 / 0.07), 0 2px 8px oklch(15% 0.01 255 / 0.05);
+    inset 0 1px 0 oklch(100% 0 0 / 0.1), 0 1px 2px oklch(0% 0 0 / 0.28);
+  /* THE HOVER STEP IS THE BEVEL BRIGHTENING, 0.10 -> 0.16. That is deliberate and
+     it is the fix for Card's `interactive` variant, whose entire affordance had
+     evaporated. A fill change cannot do this job: hovering from `--color-surface`
+     (0.07) to `--color-surface-hover` (0.09) is a 1.03x move, invisible. A brighter
+     specular line along the top edge, plus the existing 2px translate, is a real
+     and glass-native hover. */
   --shadow-md:
-    0 4px 10px -2px oklch(15% 0.01 255 / 0.09), 0 12px 28px oklch(15% 0.01 255 / 0.08);
-  --shadow-lg: 0 16px 38px -14px oklch(15% 0.01 255 / 0.26);
-  --shadow-xl: 0 22px 50px -16px oklch(15% 0.01 255 / 0.32);
+    inset 0 1px 0 oklch(100% 0 0 / 0.16), 0 2px 6px -1px oklch(0% 0 0 / 0.4),
+    0 10px 24px -8px oklch(0% 0 0 / 0.34);
+  /* lg and xl keep real blur, and that is not an inconsistency: they belong to
+     things that genuinely float clear of the plane, where there IS separation for a
+     shadow to describe. In practice that means `.glass` and GlassPanel — the five
+     overlays all use `md`, which is worth knowing before you retune either. */
+  --shadow-lg: 0 20px 44px -16px oklch(0% 0 0 / 0.62);
+  --shadow-xl: 0 28px 60px -18px oklch(0% 0 0 / 0.7);
   /* Composer sits above the page and casts upward as well as down. */
   --shadow-composer:
-    0 -2px 14px oklch(15% 0.01 255 / 0.06), 0 10px 28px -8px oklch(15% 0.01 255 / 0.12);
-  --shadow-focus: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
+    inset 0 1px 0 oklch(100% 0 0 / 0.08), 0 -2px 14px oklch(0% 0 0 / 0.22),
+    0 10px 28px -8px oklch(0% 0 0 / 0.42);
+  /* NOTHING IN THE PRODUCT CONSUMES THIS, and it is kept deliberately rather than
+     by accident. Focus is a real `outline` in globals.css — 2px accent at a 2px
+     offset — which is the better mechanism: an outline does not participate in
+     box-shadow stacking, so it cannot be clobbered by a component that sets its own
+     shadow, and it follows `border-radius` for free.
+
+     The box-shadow form survives for the one case the outline cannot serve: an
+     element inside an `overflow: hidden` ancestor, where an outline is clipped and
+     an inset-able shadow is not. Its inner stop is the colour it sits ON, punching
+     a gap so the accent ring reads as a ring — on this language that is the plane,
+     not the canvas, since the canvas is only the failsafe floor behind the
+     photograph. If you reach for this, you are in the clipped case; otherwise use
+     the outline. */
+  --shadow-focus: 0 0 0 2px oklch(18% 0.012 255), 0 0 0 4px var(--color-accent);
 
   /* ---------------------------------------------------------------------------
      MOTION
@@ -556,436 +657,6 @@
   --z-dialog: 200;
   --z-toast: 300;
 }
-
-/* =============================================================================
-   THE DIM THEME
-   =============================================================================
-
-   Dark, and deliberately not black. The ground is 30% L — clearly dim, clearly
-   not the near-black a media viewer would want. Toggled by `data-theme="dim"` on
-   <html>; see components/chrome/theme-toggle.tsx.
-
-   IT REMAPS THE SEMANTIC LAYER AND NOTHING ELSE, which is the promise the token
-   architecture makes at the top of this file: "retheming the product = remapping
-   this layer". No base ramp moves, no component reads a different variable, and
-   no call site knows the theme exists. That is the whole test of whether the
-   three-layer split was real, and this is the first time it has been exercised.
-
-   THE ORDERING IS PRESERVED, NOT INVERTED:
-     sunken 25%  <  canvas 30%  <  surface 34%
-   Exactly the relationship the light theme has (94 < 96.5 < 100), so "raised is
-   lighter, inset is darker" stays true in both and the elevation doctrine does
-   not need a second version of itself. Separation is actually BETTER here —
-   1.16:1 surface-to-canvas against the light theme's 1.11:1.
-
-   EVERY TEXT TOKEN WAS MEASURED ON THE 34% SURFACE, because that is the lightest
-   thing text ever sits on in this theme and therefore the worst case:
-     ink 10.5  ·  ink-secondary 5.9  ·  ink-tertiary 4.7
-     accent 4.9  ·  success 5.4  ·  warning 6.2  ·  danger 4.8
-   All clear 4.5:1. Note ink-tertiary clears it here and does NOT in the light
-   theme, where it sits at ~4.6 against a much lighter ground — the dim theme is
-   the more accessible of the two, which is not the usual direction.
-
-   `--color-ink-muted` is 2.98:1 and that is correct. It is placeholder and
-   disabled text only; a disabled control that reads at full contrast is not
-   disabled. Do not "fix" it.
-
-   WHAT HAD TO CHANGE SHAPE, not just value:
-
-   1 · THE PRIMARY ACTION INVERTS. On light it is near-black with white text; here
-       it is near-white with dark text. The rule being preserved is "the primary
-       action is the highest-contrast object on screen", and on a dim ground the
-       only way to satisfy it is to go the other way. 15.2:1 fill-to-label.
-
-   2 · BORDERS CARRY THE ELEVATION, NOT SHADOWS. A drop shadow on a dark ground is
-       nearly invisible — there is no light for it to remove. So the line tokens
-       become white alphas at roughly double their light-theme strength, and the
-       shadows drop to about a third. This is why the kit's elevation section
-       insists the ring does the edge definition and the blur only does the float:
-       on dim, the ring is all there is.
-
-   3 · THE GLASS AND THE SCRIM BOTH FLIP. Glass was white at 38%; a white veil over
-       a dim ground is a bright bar, not glass. It becomes a dark translucency. The
-       ambient scrim was washing toward 98.5% white to lift ink away from the
-       blobs — kept as-is it turns this canvas into pale grey, so it washes toward
-       black instead and does the same job in the other direction.
-   ============================================================================= */
-:root[data-theme="dim"] {
-  /* The ground, and the two variables AmbientBackground rebuilds it from. */
-  --canvas-l: 30%;
-  --canvas-c: 0.014;
-  --color-canvas: oklch(var(--canvas-l) var(--canvas-c) 255);
-  --color-surface: oklch(34% 0.013 255);
-  --color-surface-sunken: oklch(25% 0.015 255);
-
-  /* The translucent content tier. Dark, and a touch more opaque than the light
-     theme's 0.8: a dim veil has less lightness to spend, so it needs more of the
-     surface underneath it hidden before text stops fighting the ambient layer. */
-  --color-surface-veil: oklch(34% 0.013 255 / 0.86);
-
-  /* THE COVER WASH, which this theme had been painting at the LIGHT theme's values
-     — a 93%/83% near-white rectangle on a 34% card. It was a real defect, visible as
-     a pale pink block on the failed artifact in the home rail, and it predates the
-     spatial work.
-
-     It was left alone through that migration on purpose: the verification rested on
-     light and dim not moving, and quietly changing dim would have destroyed the one
-     check most likely to catch a mistake elsewhere. That check has since been done
-     another way — every added CSS rule audited as theme-scoped, and every new shared
-     token proven pixel-identical to the expression it replaced — so the reason to
-     defer has expired.
-
-     30/23 sits between --color-surface-sunken (25%) and --color-surface (34%), so a
-     cover reads as media resting on the card rather than as a hole cut in it. The
-     direction flips so `danger` and `dim` covers recede instead of advancing. */
-  --cover-l1: 30%;
-  --cover-l2: 23%;
-  --cover-l-dir: -1;
-
-  /* Exactly what `bg-surface/85` and `/92` resolved to here before they became
-     tokens, so this theme does not move a pixel. */
-  --color-chip-over-media: oklch(34% 0.013 255 / 0.85);
-  --color-control-over-media: oklch(34% 0.013 255 / 0.92);
-
-  /* Hover and active are LIGHT alphas here. On light they darken the surface;
-     darkening a dim surface makes it recede, which is the opposite of what a
-     hover means. */
-  --color-surface-hover: oklch(100% 0 0 / 0.06);
-  --color-surface-active: oklch(100% 0 0 / 0.1);
-
-  --color-ink: oklch(96% 0.008 255);
-  --color-ink-secondary: oklch(78% 0.012 255);
-  --color-ink-tertiary: oklch(72% 0.014 255);
-  --color-ink-muted: oklch(60% 0.014 255);
-
-  /* Roughly double the light theme's alphas. A 14% black line on white and a 14%
-     white line on a dim ground are not equally visible — the eye reads dark-on-
-     light edges more readily, so the dim values have to be pushed to match. */
-  --color-line: oklch(100% 0 0 / 0.16);
-  --color-line-inner: oklch(100% 0 0 / 0.09);
-  --color-line-soft: oklch(100% 0 0 / 0.06);
-  --color-line-strong: oklch(100% 0 0 / 0.28);
-
-  /* Inverted: near-white fill, dark label. See note 1 above. */
-  --color-action: oklch(94% 0.005 255);
-  --color-action-hover: oklch(88% 0.006 255);
-  --color-action-ink: oklch(20% 0.01 255);
-
-  /* Accent and status all rise in lightness and lose a little chroma. A saturated
-     mid-tone that sings on white goes muddy on a dim ground, and every one of
-     these is used as TEXT somewhere. */
-  --color-accent: oklch(72% 0.12 224);
-  --color-accent-hover: oklch(78% 0.11 224);
-  --color-accent-text: oklch(20% 0.01 255); /* text ON the accent fill */
-  --color-accent-soft: oklch(72% 0.12 224 / 0.16);
-  --color-accent-ink: oklch(72% 0.12 224);
-
-  --color-success: oklch(74% 0.14 150);
-  --color-success-soft: oklch(74% 0.14 150 / 0.16);
-  --color-success-ink: oklch(74% 0.14 150);
-  --color-warning: oklch(80% 0.13 70);
-  --color-warning-soft: oklch(80% 0.13 70 / 0.16);
-  --color-warning-ink: oklch(80% 0.13 70);
-  --color-danger: oklch(74% 0.155 25);
-  --color-danger-soft: oklch(74% 0.155 25 / 0.14);
-  --color-danger-ink: oklch(74% 0.155 25);
-  --color-idle: oklch(55% 0.014 255);
-
-  /* Dark glass. The barrier keeps its job — guaranteeing contrast for the chrome's
-     own text regardless of what drifts underneath it — it just guarantees it in
-     the other direction. */
-  --color-glass: oklch(26% 0.012 255 / 0.55);
-  --color-glass-barrier: oklch(22% 0.012 255 / 0.3);
-
-  /* Washes toward black, not white. See note 3. */
-  /* Much lighter than the light theme's equivalents, measured rather than mirrored.
-     At the light theme's alphas (0.42/0.30/0.14) this pulled the 30% ground down to
-     roughly 24% and the "dim, not dark" brief was lost in the scrim rather than in
-     the token. The blobs sit at 22% alpha and ink has 10:1 of headroom here, so the
-     scrim has far less work to do on dim than it does on light. */
-  --color-scrim-strong: oklch(18% 0.01 255 / 0.26);
-  --color-scrim-mid: oklch(18% 0.01 255 / 0.18);
-  --color-scrim-soft: oklch(18% 0.01 255 / 0.08);
-
-  /* About a third of the light theme's opacity, and the rings stay because on dim
-     they are the part that actually reads. */
-  --shadow-xs: 0 0 0 1px oklch(0% 0 0 / 0.3);
-  --shadow-sm: 0 1px 2px -1px oklch(0% 0 0 / 0.4), 0 2px 8px oklch(0% 0 0 / 0.22);
-  --shadow-md: 0 2px 4px -2px oklch(0% 0 0 / 0.42), 0 8px 20px -6px oklch(0% 0 0 / 0.3);
-  --shadow-lg: 0 16px 38px -14px oklch(0% 0 0 / 0.55);
-  --shadow-xl: 0 22px 50px -16px oklch(0% 0 0 / 0.62);
-  --shadow-composer: 0 -2px 14px oklch(0% 0 0 / 0.2), 0 10px 28px -8px oklch(0% 0 0 / 0.42);
-
-  /* Light, not dark — see the token's own note. */
-  --color-border-contrast: oklch(82% 0.01 255);
-}
-
-/* The high-contrast escape hatch pushes ink levels FURTHER from the surface, so on
-   dim that means further toward white. Left at the light theme's values it pushed
-   them toward graphite-700 and made `prefers-contrast: more` reduce contrast on this
-   theme, which is the worst possible failure for that query. */
-@media (prefers-contrast: more) {
-  :root[data-theme="dim"] {
-    --color-line: oklch(100% 0 0 / 0.4);
-    --color-line-inner: oklch(100% 0 0 / 0.26);
-    --color-line-strong: oklch(100% 0 0 / 0.62);
-    --color-ink-tertiary: oklch(88% 0.008 255);
-    --color-ink-muted: oklch(74% 0.01 255);
-  }
-}
-
-/* =============================================================================
-   THE SPATIAL THEME
-   =============================================================================
-
-   One translucent plane floating over a photograph. The plane is the content
-   surface — not chrome — which is the single rule that separates this theme from
-   the other two, and the reason `patterns/card`'s "glass is chrome only" gains an
-   exception here rather than being deleted. See /docs/foundations/spatial.
-
-   IT IS STILL ONLY THE SEMANTIC LAYER PLUS FIVE NEW KNOBS. No base ramp moves.
-   `Card` is not touched at any of its 121 call sites: point --color-surface,
-   .panel-edge and --shadow-* at nothing and a Card becomes a spacing box that
-   paints nothing and lets the plane show through. That is what the language
-   wants, and it is a token change rather than a refactor.
-
-   THE TWO NUMBERS EVERYTHING ELSE DEPENDS ON
-
-   A photograph has no contrast guarantee, so the theme does not ask for one — it
-   imposes one. `--backdrop-cap` is a black overlay that pins ANY image's brightest
-   pixel to 0.22 luminance, and `--plane-fill`'s alpha is derived from that ceiling.
-   Over a peak-white pixel — the worst case, and the shipped backdrop does contain
-   one — the plane composites to luminance **0.0527**. That is the ground every
-   value below was measured against.
-
-   ============================================================================
-   READ THIS BEFORE CHANGING EITHER NUMBER: CSS COMPOSITES IN GAMMA SPACE.
-   ============================================================================
-   An `opacity` or an alpha fill blends the *encoded* sRGB values, not linear
-   light. That is not a detail — it is a factor-of-five error waiting to happen,
-   and it did happen here. `--backdrop-cap` was first written as 0.78, from
-   1 - 0.22, as if opacity scaled luminance directly. It does not:
-
-     a peak-white pixel under a 0.78 black overlay renders at sRGB 0.220,
-     whose luminance is 0.0397 — NOT 0.22. Off by 5.5x.
-
-   0.78 would have crushed the photograph to a near-black field, which is
-   precisely the outcome the thick plane was chosen to avoid, and every contrast
-   figure derived from it would have been wrong in the flattering direction.
-   The correct conversion is through the transfer function:
-
-     cap = 1 - encode(target_luminance)
-     0.40 -> peak pixel at sRGB 0.60 -> luminance 0.22  (verified)
-
-   The same correction applies to the plane: `alpha x panel + (1-alpha) x backdrop`
-   is only valid on ENCODED values, per channel. Composited that way the plane is
-   0.0527 rather than the 0.0658 a linear model predicts — darker, so the honest
-   number is also the safer one, but do not rely on that holding next time.
-
-   WHY 0.40/0.65 AND NOT THE CATALOGUE'S CAP/0.50. The artifact was validated on
-   white text alone, where 50% alpha looks correct. A product needs the whole ramp,
-   and `--color-ink-tertiary` is the binding constraint, not `--color-ink`. Solving
-   the two together across the trade space — a looser cap shows more photograph, a
-   lower alpha is glassier, and both cost contrast — 0.40/0.65 is the glassiest
-   pair that still clears 4.5:1 everywhere with about 20% of margin in hand.
-
-   MEASURED ON THE 0.0527 COMPOSITE, over the brightest point the cap permits:
-     ink 9.38  ·  ink-secondary 6.68  ·  ink-tertiary 5.48
-     accent 6.01  ·  success 6.13  ·  warning 6.67  ·  danger 5.40
-   All clear 4.5:1. Every value is a step or two lighter than the dim theme's
-   equivalent, and the reason is worth stating because it is counter-intuitive:
-   dim's surface is OPAQUE at luminance 0.039, and this translucent plane is only
-   a little darker than that. A composite plane over a dimmed photo offers no more
-   headroom than a dark card — inheriting dim's ink values unexamined would have
-   shipped three levels that fail.
-
-   `--color-ink-muted` is 2.81:1, and as on dim that is correct — placeholder and
-   disabled text only. Do not "fix" it.
-
-   WHAT CHANGES SHAPE RATHER THAN VALUE
-
-   1 · NO SHADOWS ON CONTENT. Not softened, as on dim — gone. Everything sits on
-       one plane, so there is nothing for a card to be elevated above, and a
-       shadow inside a translucent panel reads as dirt on the glass. The single
-       surviving shadow is --plane-lift, which separates the plane from the
-       photograph. Overlays keep theirs through --shadow-lg/xl.
-
-   2 · SUNKEN IS A HOLE, NOT A DARKER CARD. There is no opaque surface for an
-       inset to be inset against, so --color-surface-sunken becomes black at 28%
-       over the plane: a groove cut into the glass. Ink reads 12.3:1 on it.
-
-   3 · GLASS AND THE PLANE CONVERGE. On light and dim, chrome is glass and content
-       is opaque, and the two are deliberately different materials. Here content
-       is glass too, so --color-glass adopts the plane's own recipe — otherwise the
-       nav would be a visibly different kind of translucency floating above a
-       panel made of the same idea, which reads as a mistake rather than a layer.
-
-   4 · LINES ARE THE ONLY STRUCTURE LEFT. With fills and shadows both gone, a
-       white hairline is what tells you where a region ends. They run a little
-       stronger than dim's because they are doing more work.
-   ============================================================================= */
-:root[data-theme="spatial"] {
-  /* THE FAILSAFE FLOOR, not the visible ground. The photograph is a fixed layer
-     above this (components/chrome/spatial-backdrop.tsx); this is what shows if the
-     image is still loading, blocked, or missing. It has to be darker than the cap
-     or the plane's arithmetic breaks the moment the image fails — at 24% L it
-     composites to 0.014, well under the 0.22 ceiling. */
-  --canvas-l: 24%;
-  --canvas-c: 0.012;
-  --color-canvas: oklch(var(--canvas-l) var(--canvas-c) 255);
-
-  /* The whole point. A Card still owns its padding, radius and layout; it just
-     stops painting, and the plane underneath is what you see. */
-  --color-surface: transparent;
-  --color-surface-veil: transparent;
-
-  /* A groove cut into the glass — see note 2. Composites to luminance 0.028;
-     ink reads 12.3:1 on it. */
-  --color-surface-sunken: oklch(0% 0 0 / 0.28);
-
-  /* NOT a tint of the surface — the surface is `transparent` here, so tinting it
-     produces nothing. A real dark fill instead, measured against the worst case a
-     chip can face: a blown-out white pixel in a photograph, which the models grid
-     genuinely contains. Media is NOT behind the backdrop cap — it is real content
-     above the plane — so this is the one place in the theme with no ceiling to lean
-     on. At 85% over pure white, near-white ink still reads 10.6:1. */
-  --color-chip-over-media: oklch(20% 0.012 255 / 0.85);
-  --color-control-over-media: oklch(20% 0.012 255 / 0.92);
-
-  /* Stronger than dim's 0.06/0.10: a hover has to register against a plane that
-     is already a light translucency, not against an opaque 34% card. */
-  --color-surface-hover: oklch(100% 0 0 / 0.09);
-  --color-surface-active: oklch(100% 0 0 / 0.14);
-
-  /* Measured on the 0.0658 composite. Lighter than dim at every level — see the
-     header note on why that is the correct direction. */
-  --color-ink: oklch(97% 0.006 255);
-  --color-ink-secondary: oklch(86% 0.01 255);
-  --color-ink-tertiary: oklch(80% 0.012 255);
-  --color-ink-muted: oklch(62% 0.014 255);
-
-  /* See note 4. --color-line-strong is the region divider now that no card edge
-     performs that job. */
-  --color-line: oklch(100% 0 0 / 0.14);
-  --color-line-inner: oklch(100% 0 0 / 0.08);
-  --color-line-soft: oklch(100% 0 0 / 0.05);
-  --color-line-strong: oklch(100% 0 0 / 0.3);
-
-  /* Inverted, as on dim, and here it matters more: a solid near-white fill is the
-     only fully opaque object on the screen, which makes the primary action read as
-     the one thing that is definitely not part of the glass. 16.1:1 fill-to-label,
-     and 11.1:1 for accent-text on the accent fill. */
-  --color-action: oklch(96% 0.004 255);
-  --color-action-hover: oklch(90% 0.005 255);
-  --color-action-ink: oklch(20% 0.01 255);
-
-  /* Lighter and less saturated again than dim, for the same reason the inks are:
-     the ground they sit on is lighter than a dim card. The -soft alphas rise to
-     0.18 because a 0.16 tint over a translucent plane loses roughly a third of
-     its apparent strength to the photograph showing through. */
-  --color-accent: oklch(82% 0.105 224);
-  --color-accent-hover: oklch(87% 0.095 224);
-  --color-accent-text: oklch(18% 0.01 255);
-  --color-accent-soft: oklch(82% 0.105 224 / 0.18);
-  --color-accent-ink: oklch(82% 0.105 224);
-
-  --color-success: oklch(82% 0.125 150);
-  --color-success-soft: oklch(82% 0.125 150 / 0.18);
-  --color-success-ink: oklch(82% 0.125 150);
-  --color-warning: oklch(87% 0.115 70);
-  --color-warning-soft: oklch(87% 0.115 70 / 0.18);
-  --color-warning-ink: oklch(87% 0.115 70);
-  --color-danger: oklch(83% 0.13 25);
-  --color-danger-soft: oklch(83% 0.13 25 / 0.16);
-  --color-danger-ink: oklch(83% 0.13 25);
-  --color-idle: oklch(58% 0.014 255);
-
-  /* Chrome adopts the plane's material — see note 3. All four values, not just the
-     fill: a nav blurred at 44px above a plane blurred at 40px is a difference you
-     can see at the seam where they meet, and it reads as a bug. */
-  --color-glass: var(--plane-fill);
-  --color-glass-barrier: oklch(14% 0.012 255 / 0.34);
-  --blur-glass: var(--plane-blur);
-  --saturate-glass: var(--plane-saturate);
-
-  /* Unused on product routes — no AmbientBackground renders under this theme —
-     but /docs demos paint `.ambient-ground` from these, so they keep dim's values
-     rather than going transparent and showing bare plane inside a framed sample. */
-  --color-scrim-strong: oklch(18% 0.01 255 / 0.26);
-  --color-scrim-mid: oklch(18% 0.01 255 / 0.18);
-  --color-scrim-soft: oklch(18% 0.01 255 / 0.08);
-
-  /* See note 1. The rings go too: a 1px black ring on glass is a smudge. Overlays
-     keep lg/xl because a dialog genuinely does float above the plane. */
-  --shadow-xs: none;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: 0 20px 44px -16px oklch(0% 0 0 / 0.62);
-  --shadow-xl: 0 28px 60px -18px oklch(0% 0 0 / 0.7);
-  --shadow-composer: 0 -1px 0 oklch(100% 0 0 / 0.08);
-
-  /* 4.63:1 against the plane, measured. The graphite value the light theme uses
-     would be invisible here, which is the failure the dim theme already had to
-     fix once — see that token's note. */
-  --color-border-contrast: oklch(100% 0 0 / 0.45);
-
-  /* -------------------------------------------------------------------------
-     THE PLANE ITSELF — the five knobs this theme adds.
-     Read by one rule in globals.css (`:root[data-theme="spatial"] main`), by
-     .glass, and by the overlay surfaces. Nothing else should reach for them. */
-
-  /* The alpha here is derived, not chosen. See the header. */
-  --plane-fill: oklch(18% 0.012 255 / 0.65);
-  --plane-blur: 40px;
-  --plane-saturate: 165%;
-  --plane-edge: 1px solid oklch(100% 0 0 / 0.22);
-  --plane-lift: 0 32px 72px -24px oklch(0% 0 0 / 0.66);
-  --plane-radius: var(--radius-2xl);
-
-  /* The black overlay the backdrop is rendered behind, and the reason any of the
-     numbers above can be promised over an image the system has never seen. 0.40
-     is what pins a peak-white pixel to 0.22 luminance — arrived at THROUGH THE
-     TRANSFER FUNCTION, not by subtracting from 1. See the gamma-space warning in
-     the header; this is the token that warning exists for. A workspace supplying
-     its own photograph goes through exactly the same cap. */
-  --backdrop-cap: 0.4;
-
-  /* The cover wash, turned over. 34/26 sits either side of the plane's own
-     apparent lightness, so a generated cover reads as a media object resting on the
-     plane rather than as a bright hole punched through it — which is what the light
-     theme's 93/83 produced here, and the reason these became tokens at all.
-     Direction flips so `danger` and `dim` covers recede instead of advancing. */
-  --cover-l1: 34%;
-  --cover-l2: 26%;
-  --cover-l-dir: -1;
-}
-
-/* Both escape hatches, and under this theme they are a supported mode rather than
-   a courtesy — the entire language is translucency, so a user who has switched it
-   off is asking for a different product, not a slightly flatter one.
-
-   `prefers-reduced-transparency` is handled in globals.css, where it can also
-   reach `main` and the backdrop element. Here: push ink further from the plane, as
-   the dim block does, and thicken the plane so less photograph reaches through. */
-@media (prefers-contrast: more) {
-  :root[data-theme="spatial"] {
-    --color-line: oklch(100% 0 0 / 0.36);
-    --color-line-inner: oklch(100% 0 0 / 0.24);
-    --color-line-strong: oklch(100% 0 0 / 0.6);
-    --color-ink-secondary: oklch(93% 0.008 255);
-    --color-ink-tertiary: oklch(88% 0.008 255);
-    --color-ink-muted: oklch(76% 0.01 255);
-    /* globals.css takes the plane FULLY opaque under this query and hides the
-       backdrop, so these two are the fallback for a browser that applies the token
-       block but not that rule — never the shipped result. Kept because a partially
-       supported cascade should still land somewhere legible, not because 92% is the
-       intended answer. */
-    --plane-fill: oklch(16% 0.012 255 / 0.92);
-    --plane-edge: 1px solid oklch(100% 0 0 / 0.45);
-    --backdrop-cap: 0.9;
-  }
-}
-
 
 /* -----------------------------------------------------------------------------
    LAYER 3 — COMPONENT TOKENS
@@ -1034,11 +705,13 @@
   --canvas-max-width: 40rem; /* 640px — reading/working column */
   --page-max-width: 73.75rem; /* 1180px — dashboard content */
 
-  /* Edge weight for elevated surfaces. 1.5px rather than 1px: at 1px a border
-     on a white card reads as a rendering artefact, at 2px it reads heavy in light
-     mode. 1.5px is where a surface starts feeling like a solid object. Internal
-     dividers stay at 1px with --color-line-inner. */
-  --border-width-panel: 1.5px;
+  /* Edge weight for elevated surfaces. 1px, and it USED to be 1.5px on a stated
+     justification that no longer applies: "at 1px a border on a white card reads
+     as a rendering artefact". That is true of a dark hairline on white. It is not
+     true of a white hairline on dark glass, where the same 1.5px reads heavy and
+     turns a grid of cards into a wireframe. The value moved with the ground it
+     describes. Internal dividers stay at 1px with --color-line-inner. */
+  --border-width-panel: 1px;
 
   /* ICON STROKE WEIGHT — 1.75, not lucide's default 2.
      This is the single highest-leverage line in the whole icon system. At 14–18px
@@ -1050,37 +723,185 @@
      Applied once, in globals.css, via `svg[stroke-width]` — see the note there. */
   --icon-stroke: 1.75;
 
-  --blur-glass: 44px;
-  /* The other half of the effect, and the part people forget. Backdrop blur alone
-     produces a grey, washed-out panel because averaging many colours desaturates
-     them. Pushing saturation back up is what makes a warm surface behind the bar
-     still read as warm through it — the difference between "frosted glass" and
-     "a translucent grey rectangle". */
-  --saturate-glass: 180%;
+  /* GLASS AND THE PLANE ARE ONE MATERIAL, so all three knobs track the plane's —
+     not just the fill. These were 44px and 180% against the plane's 40px and 165%,
+     which is a difference you can see at the seam where the nav meets the panel
+     below it, and it reads as a bug rather than as a layer. Chrome and content
+     disagreeing about what they are made of is exactly what this language is not.
+
+     The saturation is the half people forget: blur averages many colours together
+     and therefore desaturates them, so pushing saturation back up is the difference
+     between "frosted glass" and "a translucent grey rectangle". */
+  --blur-glass: var(--plane-blur);
+  --saturate-glass: var(--plane-saturate);
   --meter-thickness: 3px; /* the recurring progress/metric strip */
+
+  /* ---------------------------------------------------------------------------
+     THE PLANE — the page's own surface, and the five knobs that define it.
+
+     Read by one rule in globals.css, by `.glass`, and by the overlay surfaces.
+     Nothing else should reach for them.
+
+     THE ALPHA IS DERIVED, NOT CHOSEN, and it is solved together with the card tier
+     above it: the plane has to be dark enough that a 7% white card can sit on it
+     and still hold 4.5:1 for --color-ink-tertiary. 0.72 is where that lands. It
+     used to be 0.65, from a version of this language in which nothing sat on the
+     plane at all.
+
+     STILL GLASS: 28% of the capped photograph comes through, which is what the
+     blur and the saturation are for.
+     --------------------------------------------------------------------------- */
+  --plane-fill: oklch(18% 0.012 255 / 0.72);
+  --plane-blur: 40px;
+  /* Blur averages many colours together and therefore desaturates them; this puts
+     it back. Without it a frosted panel is just a translucent grey rectangle. */
+  --plane-saturate: 165%;
+  --plane-edge: var(--border-width-panel) solid var(--color-line);
+  --plane-lift: 0 32px 72px -24px oklch(0% 0 0 / 0.66);
+  --plane-radius: var(--radius-2xl);
+
+  /* THE BACKDROP CAP — a black layer over the photograph, and the reason any
+     contrast figure in this file can be promised over an image the system has
+     never seen. It pins the brightest pixel ANY image can produce to 0.22
+     luminance. A workspace supplying its own photograph goes through the same cap.
+
+     ============================================================================
+     0.40, AND IT IS NOT 1 - 0.22. CSS COMPOSITES IN GAMMA SPACE.
+     ============================================================================
+     An `opacity` or an alpha fill blends ENCODED sRGB, not linear light. That is
+     not a detail — it is a factor-of-five error waiting to happen, and it did
+     happen here. This was first written as 0.78, from 1 - 0.22, as if opacity
+     scaled luminance directly. It does not:
+
+       a peak-white pixel under a 0.78 black overlay renders at sRGB 0.220,
+       whose luminance is 0.0397 — NOT 0.22. Off by 5.5x.
+
+     0.78 crushes the photograph to a near-black field, and every contrast figure
+     derived from it is wrong in the flattering direction. The correct conversion
+     runs through the transfer function:
+
+       cap = 1 - encode(target_luminance)      0.40 -> sRGB 0.60 -> luminance 0.22
+
+     The same correction applies to every composite in this file:
+     `alpha x fg + (1-alpha) x bg` is only valid on ENCODED values, per channel.
+     Compute in linear light and the whole ladder is wrong. */
+  --backdrop-cap: 0.4;
 
   /* ---------------------------------------------------------------------------
      PROCEDURAL COVER — the base of the generated media wash.
 
-     These were literals inside procedural-cover.tsx (93% and 83%), which made the
-     one thing about that component that IS a theme concern the one thing a theme
-     could not reach. They encode "about the lightness of this theme's surfaces",
-     so a dark theme has to be able to move them.
+     These were literals inside procedural-cover.tsx (93% and 83%) — the one thing
+     about that component that is a GROUND concern, written where the ground could
+     not reach it. They encode "about the lightness of the surfaces around this
+     cover", so they belong here.
 
-     `--cover-l-dir` is the sign of the component's own variant offsets. `danger`
-     and `dim` covers are deliberately WEAKER than a normal one, and weaker means
-     LIGHTER on a light ground and DARKER on a dark one — so the offsets need a
-     direction, not just a magnitude. Without it the failed cover would come out
-     stronger than the normal one on every dark theme.
+     `--cover-l-dir` is the sign of the component's own variant offsets. A `danger`
+     or a `dim` cover is deliberately WEAKER than a normal one, and weaker means
+     lighter on a light ground and darker on a dark one — so the offsets need a
+     direction, not just a magnitude. Without it a failed cover would come out
+     stronger than a normal one.
 
-     KNOWN, AND DELIBERATELY NOT FIXED IN THIS PASS: the dim theme does not
-     override these, so it still paints the light theme's pale wash on its dark
-     cards. That is a real pre-existing defect and a two-line fix, but the spatial
-     migration's verification rests on light and dim rendering pixel-identically
-     before and after, and quietly changing dim here would destroy the one check
-     most likely to catch a mistake elsewhere in it. Fix it on its own.
+     34/26 sits either side of the card tier's apparent lightness, so a generated
+     cover reads as a media object resting on the card rather than as a bright hole
+     punched through it — which is what the old 93/83 produced here, and the reason
+     these became tokens at all.
      --------------------------------------------------------------------------- */
-  --cover-l1: 93%;
-  --cover-l2: 83%;
-  --cover-l-dir: 1;
+  --cover-l1: 34%;
+  --cover-l2: 26%;
+  --cover-l-dir: -1;
+}
+
+/* =============================================================================
+   THE ACCESSIBILITY MODES
+   =============================================================================
+
+   THERE IS ONE DESIGN LANGUAGE NOW. `light` and `dim` were deleted; every value
+   above is the language itself rather than a theme override, which is why nothing
+   in this file is scoped to a `data-theme` attribute any more.
+
+   That collapse removed a whole class of bug rather than fixing instances of it.
+   The rule worth carrying forward:
+
+     A theme override that redeclares a CUSTOM PROPERTY is always safe.
+     A theme override that overrides a PROPERTY is a trap.
+
+   `:root[data-theme=X] { --color-line: … }` composes with everything. But
+   `:root[data-theme=X] .foo { border-color: … }` has no good home: unlayered it
+   silently outranks every call site, and layered it silently loses to every
+   utility. The old `.panel-edge { border-color: transparent }` was exactly this —
+   it meant a caller literally could not restore a card edge, and one place in the
+   product wrote `border-accent/25` that never painted. With one language there are
+   no property overrides left to get wrong.
+
+   WHAT REMAINS ARE NOT THEMES, THEY ARE MODES. Translucency IS this language, so a
+   user who has switched it off is not asking for a flatter version of the product;
+   they are asking for a different rendering of it, and it has to stand on its own.
+   Both blocks below are therefore a supported mode rather than a courtesy.
+
+   THEY FALL BACK TO OPAQUE DARK, NOT TO A LIGHT THEME. The ink tokens are what
+   make this language dark and they are not what these queries switch off. Handing
+   them light surfaces would leave near-white ink on near-white cards.
+
+   THESE TWO BLOCKS MUST BE THE LAST THING IN THIS FILE, and that is not tidiness.
+   A `@media` query adds no specificity, so a `:root` inside one competes with every
+   other `:root` on source order alone. They sat above LAYER 3 for one build, and
+   layer 3 redeclares `--plane-fill` — so the plane silently stayed translucent in
+   both modes while everything around it went opaque. It was caught by asserting the
+   computed alpha rather than by looking, because a mostly-opaque page looks fine.
+   Anything these blocks override has to be declared above them.
+   ============================================================================= */
+
+/* Someone asking for more contrast gets the maximum available: the plane goes
+   fully opaque, the photograph is not rendered at all, and every ink level moves
+   further from its ground rather than nearer. The last part is worth stating
+   because the obvious implementation gets it backwards — the light theme's version
+   of this block pushed ink toward a mid grey, which on a dark ground REDUCES
+   contrast. That shipped once and had to be fixed. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-surface: oklch(28% 0.012 255);
+    --color-surface-veil: oklch(28% 0.012 255);
+    --color-surface-sunken: oklch(21% 0.014 255);
+    --color-surface-solid: oklch(18% 0.012 255);
+    --color-line: oklch(100% 0 0 / 0.36);
+    --color-line-inner: oklch(100% 0 0 / 0.24);
+    --color-line-strong: oklch(100% 0 0 / 0.6);
+    --color-ink-secondary: oklch(93% 0.008 255);
+    --color-ink-tertiary: oklch(88% 0.008 255);
+    --color-ink-muted: oklch(76% 0.01 255);
+    --color-scrim-dialog: oklch(0% 0 0 / 0.8);
+    --plane-fill: oklch(22% 0.012 255);
+    --plane-blur: 0px;
+    --plane-saturate: 100%;
+    --plane-edge: 1px solid var(--color-border-contrast);
+    --backdrop-cap: 1;
+  }
+}
+
+/* Some platforms expose transparency separately from contrast. Same destination,
+   arrived at for a different reason: opaque surfaces, real borders, real shadows,
+   and the photograph neither shown nor downloaded. Elevation has to come back from
+   somewhere, so the shadows stop being bevels and become blurs again — with no
+   translucency doing the separating, that is the only mechanism left. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --color-surface: oklch(28% 0.012 255);
+    --color-surface-veil: oklch(28% 0.012 255);
+    --color-surface-sunken: oklch(21% 0.014 255);
+    --color-surface-solid: oklch(18% 0.012 255);
+    --color-surface-hover: oklch(100% 0 0 / 0.06);
+    --color-surface-active: oklch(100% 0 0 / 0.1);
+    --color-surface-raised-hover: oklch(100% 0 0 / 0.1);
+    --color-chip-over-media: oklch(20% 0.012 255 / 0.92);
+    --color-control-over-media: oklch(20% 0.012 255);
+    --plane-fill: oklch(24% 0.012 255);
+    --plane-blur: 0px;
+    --plane-saturate: 100%;
+    --plane-edge: var(--border-width-panel) solid var(--color-line);
+    --shadow-xs: 0 0 0 1px oklch(0% 0 0 / 0.3);
+    --shadow-sm: 0 1px 2px -1px oklch(0% 0 0 / 0.4), 0 2px 8px oklch(0% 0 0 / 0.22);
+    --shadow-md: 0 2px 4px -2px oklch(0% 0 0 / 0.42), 0 8px 20px -6px oklch(0% 0 0 / 0.3);
+    --plane-lift: var(--shadow-md);
+    --backdrop-cap: 1;
+  }
 }

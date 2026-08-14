@@ -11,18 +11,27 @@ import {
 
 export const metadata = { title: "Elevation & glass" };
 
+const DocLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <Link
+    href={href}
+    className="text-accent-ink underline decoration-line-strong underline-offset-2"
+  >
+    {children}
+  </Link>
+);
+
 export default function ElevationDocs() {
   return (
     <>
       <DocHeader
         eyebrow="Foundations"
         title="Elevation & glass"
-        lede="Depth here is structural, not decorative. Two things do the work and they are strictly separated: a border defines the edge, shadows do the floating. Translucency is reserved for a single, specific job."
+        lede="Depth here is structural, not decorative. A border defines the edge; lift is a specular bevel plus a tight contact shadow, because a drop shadow works by removing light and at luminance 0.039 there is almost none left to remove. Only the things that genuinely float clear of the plane keep a real blur."
       />
 
       <DocSection
         title="The elevation scale"
-        description="Five steps. Every one of them is pure blur — no rings. Edges are a border's job now."
+        description="Five steps, and they are deliberately not one shape. xs is a ring, sm and md are a bevel plus a contact shadow, md and up keep real blur."
       >
         <Example label="shadow-xs → shadow-xl">
           {(["xs", "sm", "md", "lg", "xl"] as const).map((s) => (
@@ -37,48 +46,111 @@ export default function ElevationDocs() {
         </Example>
 
         <SpecTable
-          columns={["Token", "Use for", "Notes"]}
+          columns={["Token", "Recipe", "Use for"]}
           rows={[
-            ["--shadow-xs", "Flat chips, subtle definition", "The one exception: ring only, no blur. It IS an edge, not a lift — so it cannot double against one."],
-            ["--shadow-sm", "Cards, secondary buttons", "The default for content surfaces."],
-            ["--shadow-md", "Menus, popovers, dropdowns", "Transient overlays that must clearly detach."],
-            ["--shadow-lg", "Floating chrome at rest", "Topbar, side rails."],
-            ["--shadow-xl", "Floating chrome, hover/expanded", "Deepens as a panel grows, reinforcing that it came forward."],
-            ["--shadow-composer", "The composer only", "Casts upward as well as down, since it sits above page content."],
+            [
+              "--shadow-xs",
+              "0 0 0 1px white @ 0.10",
+              "The one ring in the scale, and it stays one: it IS an edge, not a lift, so it cannot double against one. Its consumers — StatTile `panel`, solid FilterPills, Accordion `separated` — carry no `.panel-edge`, and the ring is their only boundary.",
+            ],
+            [
+              "--shadow-sm",
+              "inset 0 1px 0 white @ 0.10, then 0 1px 2px black @ 0.28",
+              "The default for content surfaces: cards, secondary buttons, the docs' own panels. A specular top bevel plus a tight contact shadow — no ring, because everything using it already has a real border.",
+            ],
+            [
+              "--shadow-md",
+              "inset 0 1px 0 white @ 0.16, plus a 6px contact shadow and a 24px diffuse one",
+              "Transient overlays that must clearly detach — menus, popovers, dialogs, tooltips — and the hover step of an interactive Card.",
+            ],
+            [
+              "--shadow-lg",
+              "0 20px 44px -16px black @ 0.62. Pure blur.",
+              "Floating chrome at rest. `.glass` ships it, so GlassPanel gets it without asking.",
+            ],
+            [
+              "--shadow-xl",
+              "0 28px 60px -18px black @ 0.7. Pure blur.",
+              "Floating chrome, hover or expanded. Deepens as a panel grows, reinforcing that it came forward.",
+            ],
+            [
+              "--shadow-composer",
+              "A bevel, an UPWARD 14px shadow, and a downward one",
+              "The composer only. It sits above page content, so it casts upward as well as down.",
+            ],
           ]}
         />
 
-        <UXNote title="One edge, one lift — and why they are separate properties">
+        <UXNote title="Why the middle of the scale is a bevel and not a blur">
           <p>
-            On a light background a single blurred shadow either disappears or turns
-            grey and muddy, so each token is <strong>two blurs at different radii</strong>:
-            a tight one that grounds the surface and a wide diffuse one that lifts it.
+            <strong>A drop shadow removes light, and there is almost none to remove
+            here.</strong> The plane sits at luminance <strong>0.039</strong>. Any blur
+            strong enough to actually see against that reads as{" "}
+            <em>dirt on the glass</em> rather than as lift — which is exactly what the
+            first pass at this language concluded when it set <Code>sm</Code> and{" "}
+            <Code>md</Code> to <Code>none</Code> outright and took every hover affordance
+            in the product down with them.
           </p>
           <p>
-            <strong>What they no longer contain is a <Code>0 0 0 1px</Code> ring.</strong>{" "}
-            An earlier revision of this kit put the edge inside the shadow token, so
-            surfaces had a boundary without a border — and the rule was then
-            &ldquo;never add a border on top of a shadow,&rdquo; because you would get a
-            doubled edge. That rule is gone, and so is the ring. Responsibility moved
-            rather than accumulating:
+            The kit already had the dark-ground vocabulary written in two places:{" "}
+            <Code>.glass</Code> and the plane both express lift as a{" "}
+            <strong>specular top bevel</strong> — a bright hairline along the top inside
+            face, the way real glass catches light — plus a tight contact shadow
+            underneath. These tokens reuse that rather than inventing a second language
+            for the same idea.
+          </p>
+          <p>
+            <strong>The hover step is the bevel brightening, 0.10 → 0.16.</strong> That
+            is the fix for <Code>Card</Code>&apos;s <Code>interactive</Code> variant,
+            whose affordance had entirely evaporated. A fill change cannot do this job:
+            hovering from <Code>--color-surface</Code> (0.07) to{" "}
+            <Code>--color-surface-hover</Code> (0.09) is a <strong>1.03× move</strong> —
+            invisible. A brighter specular line plus the existing 2px translate is a real
+            hover and a glass-native one.
+          </p>
+          <p>
+            <strong><Code>md</Code> and up keep real blur, and that is not an
+            inconsistency.</strong> They belong to things that genuinely float{" "}
+            <em>clear</em> of the plane — overlays, floating chrome — where there is
+            separation for a shadow to describe. A card is not one of those things: it
+            rests on the plane.
+          </p>
+        </UXNote>
+
+        <UXNote title="One edge, one lift — and why they are separate properties">
+          <p>
+            <strong>The shadow tokens above <Code>xs</Code> carry no{" "}
+            <Code>0 0 0 1px</Code> ring.</strong> An earlier revision of this kit put the
+            edge inside the shadow, so surfaces had a boundary without a border — and the
+            rule was then &ldquo;never add a border on top of a shadow,&rdquo; because
+            you would get a doubled edge. That rule is gone, and so is the ring.
+            Responsibility moved rather than accumulating:
           </p>
           <ul className="mt-1 mb-3 ml-4 list-disc space-y-1.5 text-ink-secondary">
             <li>
               <strong className="text-ink">The border defines the edge.</strong> One real{" "}
-              <Code>--border-width-panel</Code> (1.5px) in <Code>--color-line</Code>, via
+              <Code>--border-width-panel</Code> (1px) in <Code>--color-line</Code>, via
               the <Code>.panel-edge</Code> utility.
             </li>
             <li>
-              <strong className="text-ink">The shadow does nothing but float.</strong>{" "}
-              Pure blur, no ring, nothing to double against.
+              <strong className="text-ink">The shadow does nothing but lift.</strong> A
+              bevel and a contact shadow, and the bevel is <Code>inset</Code> so it sits
+              inside the border rather than fighting it.
             </li>
           </ul>
           <p>
             The reason for the swap: a shadow ring is soft and scale-dependent, and it
-            fades as the shadow does. A real border stays exactly 1.5px crisp at any zoom
-            and does not soften on hover. Surfaces read as <em>objects with edges</em>
-            rather than soft clouds — while still floating, because the blurs survived
-            untouched.
+            fades as the shadow does. A real border stays exactly 1px crisp at any zoom
+            and does not soften on hover. It also matters more here than it did on white,
+            because with no usable drop shadow the edge is <em>most</em> of what says
+            &ldquo;object&rdquo;.
+          </p>
+          <p>
+            <strong>The panel width came DOWN to 1px, from 1.5px.</strong> The old value
+            had a stated justification — &ldquo;at 1px a border on a white card reads as a
+            rendering artefact&rdquo; — which is true of a dark hairline on white and
+            false of a white hairline on dark glass, where 1.5px reads heavy and turns a
+            grid of cards into a wireframe. The value moved with the ground it describes.
           </p>
         </UXNote>
 
@@ -92,12 +164,19 @@ export default function ElevationDocs() {
             panel turn a table into a spreadsheet. <strong>Strong outside, quiet
             inside.</strong>
           </p>
+          <p>
+            <strong>And do not reach for <Code>--color-line-strong</Code> to divide a
+            region.</strong> It is a <em>control</em> edge — badges, pills, checkbox and
+            radio boxes, the EmptyState frame, the Toolbar separator. Section boundaries
+            come from the tier boundary (a serif title on the plane, cards below it),
+            from whitespace, and from <Code>&lt;Separator /&gt;</Code>.
+          </p>
         </DontNote>
       </DocSection>
 
       <DocSection
-        title="Glass — and the barrier layer"
-        description="The .glass utility: translucent fill, backdrop blur, mandatory barrier layer, elevation."
+        title="Glass is the language now, not the exception"
+        description="This page said “navigational chrome only” for two releases. The rule has not been softened — it has been paid for."
       >
         <Example className="relative overflow-hidden !p-0">
           {/* A busy backdrop so the barrier layer's job is visible. */}
@@ -114,127 +193,148 @@ export default function ElevationDocs() {
           </div>
         </Example>
 
-        <UXNote title="The three glass rules">
+        <UXNote title="What changed, and what did not">
           <p>
-            <strong>1 · Navigational chrome only \u2014 except under Spatial.</strong>{" "}
-            The topbar, the side rails, the composer. Never body content and never
-            data-dense cards \u2014 reading beats effect, every time. The one theme that
-            inverts this buys the right to with a measured backdrop cap; see{" "}
-            <Link href="/docs/foundations/spatial" className="text-accent-ink underline decoration-line-strong underline-offset-2">Spatial</Link>. Content surfaces that want translucency use{" "}
-            <Code>.surface-veil</Code> instead: 80% and no blur, which is safe precisely
-            because it drops the two things that make glass risky. See{" "}
-            <Code>Color</Code> for the full comparison.
+            <strong>1 · Chrome and content are the same material.</strong>{" "}
+            <Code>--color-glass</Code> is <Code>var(--plane-fill)</Code> — not a value
+            that resembles the plane, the plane itself. The page IS a translucent panel,
+            so a topbar made of something else would read as a second material sitting on
+            a first, and the seam where they meet is where you would see it.
           </p>
           <p>
-            <strong>2 · The barrier layer is not optional.</strong>{" "}
-            <Code>--color-glass</Code> alone is too sheer for text to survive over an
-            arbitrary backdrop. The <Code>.glass</Code> utility paints a solid
-            low-opacity fill via <Code>::before</Code> beneath the content, which is
-            what turns &ldquo;contrast is usually fine&rdquo; into &ldquo;contrast is
-            guaranteed.&rdquo;
+            <strong>What buys that is <Code>--backdrop-cap</Code>, and nothing else
+            does.</strong> The old rule existed because a sheer fill over{" "}
+            <strong>arbitrary</strong> content makes contrast a matter of luck. Here the
+            content behind the plane is a photograph held under a cap that pins its
+            brightest possible pixel to <strong>0.22 luminance</strong>, so the worst case
+            is imposed rather than hoped for. <strong>Translucent content without that cap
+            is still the mistake the rule exists to prevent</strong> — if you are copying
+            this treatment somewhere the cap does not reach, you are copying the risk and
+            leaving the mitigation behind. The derivation is on{" "}
+            <DocLink href="/docs/foundations/spatial">Spatial</DocLink>.
           </p>
           <p>
-            <strong>3 · Always paired with elevation and an edge.</strong> Translucency
-            on its own reads as broken rendering. Translucency plus a real shadow{" "}
-            <em>and</em> a real border reads as a pane of glass — which is the point. The{" "}
-            <Code>.glass</Code> utility carries the 1.5px panel border itself, so you
-            never have to remember it.
+            <strong>2 · The barrier layer is still not optional.</strong>{" "}
+            <Code>--color-glass</Code> alone is too sheer for text to survive whatever
+            drifts under a fixed bar. <Code>.glass</Code> paints{" "}
+            <Code>--color-glass-barrier</Code> via <Code>::before</Code> beneath the
+            content — <Code>oklch(14% 0.012 255 / 0.34)</Code>, a <em>dark</em> barrier
+            now, because ink here is near-white. That is what turns &ldquo;contrast is
+            usually fine&rdquo; into &ldquo;contrast is guaranteed.&rdquo;
+          </p>
+          <p>
+            <strong>3 · Always paired with elevation and an edge.</strong> Translucency on
+            its own reads as broken rendering. Translucency plus a real shadow{" "}
+            <em>and</em> a real border reads as a pane of glass. The{" "}
+            <Code>.glass</Code> utility carries the 1px panel border and{" "}
+            <Code>--shadow-lg</Code> itself, so you never have to remember either.
           </p>
         </UXNote>
 
         <DontNote>
           <p>
-            <strong>Never glass on a transient overlay.</strong> A dropdown or dialog
-            appears over unpredictable content — a table, an image, a wall of text.
-            Blurring that does not make it readable, it makes it noisy. Menus, popovers
-            and dialogs in this kit are opaque <Code>bg-surface</Code> with{" "}
-            <Code>shadow-md</Code>. Glass is for surfaces that are{" "}
-            <em>always there</em>, whose backdrop you control.
+            <strong>Overlays are the one thing that does NOT go translucent under a
+            translucent language.</strong> All five — <Code>Dialog</Code>,{" "}
+            <Code>Popover</Code>, <Code>DropdownMenu</Code>, <Code>Select</Code>,{" "}
+            <Code>Tooltip</Code> — take <Code>--color-surface-solid</Code> at 0.94 and get
+            no <Code>backdrop-filter</Code> at all. Ink on one measures{" "}
+            <strong>15.68:1</strong>, with nothing about the backdrop entering the
+            calculation.
+          </p>
+          <p>
+            There are two reasons and the second settles it. Rule 1 of the language
+            forbids stacked translucency. And blurring an already-blurred field buys
+            nothing: the plane is smooth at 40px, so a second pass is visually identical
+            at the cost of a full compositor pass over the overlay&apos;s bounds. What a
+            menu actually needs is the guarantee the plane has and it does not —{" "}
+            <strong>nothing imposes a cap behind a dropdown.</strong> It can open over
+            generated media, over a bright photograph, over another menu.
           </p>
         </DontNote>
       </DocSection>
 
       <DocSection
-        title="Why there is an animated background at all"
+        title="Why there is a photograph behind everything"
         description="The one piece of this system that looks decorative, and the argument for it."
       >
         <p className="mb-5 text-ink-secondary">
-          Translucency over a flat static colour is wasted — there is nothing to reveal, so
-          it costs contrast and buys nothing. The ambient layer exists to give the two
-          translucent tiers (<Code>.glass</Code> chrome and <Code>.surface-veil</Code>
-          content) something to reveal. That is the whole justification. It is not there to
-          look futuristic.
+          Translucency over a flat static colour is wasted — there is nothing to reveal,
+          so it costs contrast and buys nothing. A blurred plane over a flat fill is just
+          a slightly different flat fill. The photograph exists to give the plane
+          something to be translucent <em>over</em>. That is the whole justification; it
+          is not there to look futuristic.
         </p>
         <p className="mb-5 text-ink-secondary">
-          It lives in <Code>components/chrome/ambient-background.tsx</Code> and stacks
-          three layers, each doing one job:
+          It lives in <Code>components/chrome/spatial-backdrop.tsx</Code> as a fixed,{" "}
+          <Code>aria-hidden</Code>, pointer-events-none layer, and it is a CSS{" "}
+          <Code>background-image</Code> rather than an <Code>&lt;Image&gt;</Code> on
+          purpose: a browser does not fetch the background of an element whose computed{" "}
+          <Code>display</Code> is <Code>none</Code>, so a user who has asked for reduced
+          transparency downloads zero bytes for a backdrop they will never see.
         </p>
         <SpecTable
-          columns={["Layer", "What it does", "Why"]}
+          columns={["Layer", "Value", "Why"]}
           rows={[
-            ["Lava", "Four blurred blobs, transform-animated on 53s / 67s / 79s / 97s cycles", "The colour. All durations on this layer are PRIME, so the combined pattern's least common multiple is measured in months and the loop can never be caught. Where two blobs cross their alphas compound and the colour deepens — that compounding is what reads as molten rather than as a fading gradient."],
-            ["Sweep", "One wide feathered band crossing the field over 131s", "The DIRECTION. The blobs breathe in place, which reads as alive but never as moving; a band that travels all the way across is what turns a texture into weather. Oversized and rotated so its ends are never in frame."],
-            ["Grid", "56px ruled grid at 7%, drifting one cell over 89s", "The only structural element here, and the one that does most of the futuristic work. It is also nearly free: a 1px line at 7% inside a 56px cell barely moves the local average, so it buys character at almost no contrast cost. It translates by EXACTLY one cell, which makes the loop seamless by construction rather than by being slow enough to hide a jump."],
-            ["Scrim", "A broad near-white radial, 42% at the centre falling to a 14% floor", "LOAD-BEARING, not decorative. It lifts the middle of the frame — where the content column sits — while leaving the outer field saturated. It was 62% and had to come DOWN: at that strength the whole layer animated correctly and was invisible, measuring about 4/255 of colour swing in the content band against about 90 now."],
-            ["Conic wash", "One conic gradient rotating over 120s", "Angular motion the radial blobs cannot make. Sized 160vmax because a rotating box smaller than the viewport sweeps its own corners through frame."],
-            ["Grain", "Static inline SVG feTurbulence at 4% via soft-light", "Large smooth gradients band visibly on 8-bit displays, and banding is what makes them look cheap. Static, because animated noise is a battery bill for nothing."],
+            [
+              "The photograph",
+              "--backdrop-image, defaulting to a non-figurative tunnel frame",
+              "Fixed, so the plane scrolls and the image does not — which is most of what makes the plane read as floating in front of something. A workspace can override it, and the override goes through the same cap.",
+            ],
+            [
+              "The cap",
+              "--backdrop-cap: 0.4",
+              "A black layer over the image that pins the brightest pixel ANY photograph can produce to 0.22 luminance. This is what lets every contrast figure in the kit be a promise about an image the system has never seen.",
+            ],
+            [
+              "The plane",
+              "--plane-fill at 0.72, blur(40px), saturate(165%)",
+              "28% of the capped photograph comes through, which is what the blur and the saturation are for. Blur averages colours together and therefore desaturates them; the saturation puts it back.",
+            ],
+            [
+              "The plane's lift",
+              "inset 0 1px 0 white @ 0.14, then --plane-lift",
+              "The same specular bevel the shadow scale uses. It is most of why a translucent panel reads as a pane of something rather than as reduced opacity.",
+            ],
           ]}
         />
-        <p className="mt-5 mb-5 text-ink-secondary">
-          It is deliberately <strong>not</strong> discrete floating orbs, bubbles, or
-          particles. That specific treatment is the clearest &ldquo;AI slop&rdquo; tell in
-          current product design, and it would undercut everything else here.
-        </p>
 
-        <UXNote title="An ambient layer nobody can see is not restraint, it is waste">
+        <UXNote title="The ceiling is measured, not chosen — and the arithmetic is the interesting part">
           <p>
-            This layer was, for a while, exactly that. The blobs were anchored{" "}
-            <em>outside</em> the frame (−24% left, −22% right, −28% bottom) and blurred
-            at 64px, which spread them so far that almost none of the colour reached
-            the content area — while a 62% scrim removed what did. Every animation ran
-            correctly, on the compositor, at the right durations, and the result was a
-            flat grey page paying the full cost of six moving layers.
+            <strong>0.40 is not 1 − 0.22.</strong> CSS composites in{" "}
+            <em>gamma space</em>: an <Code>opacity</Code> or an alpha fill blends encoded
+            sRGB, not linear light. This was first written as <strong>0.78</strong>,
+            straight from 1 − 0.22, as if opacity scaled luminance directly. It does not —
+            a peak-white pixel under a 0.78 black overlay renders at sRGB 0.220, whose
+            luminance is <strong>0.0397</strong>. Off by 5.5×.
           </p>
           <p>
-            The fix was geometric before it was chromatic: pull the blobs{" "}
-            <strong>into</strong> frame, drop the blur, and take the scrim down. Alpha
-            went from 20% to 22% — barely a change — but measured colour swing in the
-            content band went from about <strong>4/255 to about 90/255</strong>.
+            0.78 crushes the photograph to a near-black field and makes every contrast
+            figure derived from it wrong in the flattering direction. The correct
+            conversion runs through the transfer function:{" "}
+            <Code>cap = 1 − encode(target_luminance)</Code>, so 0.40 → sRGB 0.60 →
+            luminance 0.22. The same correction applies to every composite in the token
+            file: <Code>alpha × fg + (1−alpha) × bg</Code> is only valid on{" "}
+            <strong>encoded</strong> values, per channel.
           </p>
         </UXNote>
 
-        <UXNote title="The ceiling on this layer is measured, not chosen">
+        <UXNote title="What replaced what">
           <p>
-            22% is where it stops, and the number comes from text rather than taste.
-            Two overlapping blobs plus the sweep plus a grid line is the worst point
-            the geometry can produce, and at that point <Code>ink-secondary</Code> must
-            still clear 4.5:1 on the bare canvas (it holds at <strong>5.26:1</strong>)
-            and <Code>ink-tertiary</Code> must clear it on the glass topbar (
-            <strong>4.51:1</strong>).
+            This section used to describe an animated CSS ambient layer — drifting blurred
+            blobs, a sweep band, a ruled grid, a scrim, a conic wash and a grain overlay,
+            all on prime-numbered durations so the combined loop could never be caught.
+            That layer is gone, and the component with it. It was doing the same job the
+            photograph does now, with one difference that decided it: a generated field
+            has no worst case you can name, so its ceiling had to be argued down by
+            measurement every time it changed, whereas a capped image has a worst case by
+            construction.
           </p>
           <p>
-            This is also what makes the canvas rule binding rather than advisory:
-            nothing below <Code>ink-secondary</Code> may sit directly on the ambient
-            layer. Strengthening the background turned that from a guideline into a
-            constraint, and the section eyebrows on the home page had to move up a
-            level to satisfy it.
-          </p>
-        </UXNote>
-        <UXNote title="Why CSS and not WebGL">
-          <p>
-            A WebGL mesh gradient (<Code>@mesh-gradient/react</Code>, GradFlow,
-            Stripe&apos;s ~10kb <Code>gradient.js</Code>) wins a side-by-side comparison.
-            It also costs a dependency the consuming team has to adopt, a canvas, and
-            continuous GPU work for a purely decorative layer — in a B2B tool people
-            leave open all day, on laptops, on battery. Three stacked CSS layers get
-            substantially the same read for zero dependencies and degrade honestly.
-          </p>
-          <p>
-            All three layers are <Code>position: fixed</Code> and{" "}
-            <Code>pointer-events: none</Code>. Motion stops under{" "}
-            <Code>prefers-reduced-motion</Code>, and the entire layer is{" "}
-            <em>removed</em> — not dimmed — under <Code>prefers-contrast: more</Code> and{" "}
-            <Code>prefers-reduced-transparency</Code>.
+            <Code>.ambient-ground</Code> survives in <Code>globals.css</Code> as a frozen,
+            static sample of that palette, and it is used in exactly one place: the
+            examples on this docs site that need a representative busy backdrop inside a
+            fixed-size box (the glass specimen above is sitting on it). It is not painted
+            on any product route.
           </p>
         </UXNote>
       </DocSection>
@@ -272,37 +372,59 @@ export default function ElevationDocs() {
           <p>
             So it is allowed in exactly one situation: a <strong>small tactile
             control</strong> whose pressed-versus-unpressed physicality <em>is</em> the
-            information, and which carries <strong>no text</strong>. The label always
-            lives on an opaque sibling. Under{" "}
-            <Code>prefers-contrast: more</Code> these surfaces drop their shadows and
-            take a real border instead.
+            information. Under <Code>prefers-contrast: more</Code> both surfaces drop
+            their shadows and take a real border instead — that fallback is why the
+            treatment is defensible at all.
+          </p>
+          <p>
+            <strong>The constraint used to be stated as &ldquo;and it carries no
+            text&rdquo;, which was wrong about the code.</strong>{" "}
+            <Code>SegmentedControl</Code> and <Code>FilterPills</Code> both put{" "}
+            <Code>text-ink</Code> directly on <Code>.neu-raised</Code>, so the raised fill
+            is a label&apos;s background in two of its five consumers. The real constraint
+            is narrower: the raised fill has to hold body-text contrast. It does — 38% L,
+            opaque, <strong>9.2:1</strong> for ink on top of it — and that is what ruled
+            out the near-white value this language first tried, which rendered near-white
+            text on near-white and made the selected tab unreadable.
+          </p>
+          <p>
+            The lighting is also inverted from a light ground, and has to be. Light falls{" "}
+            <em>into</em> a hole from above, so <Code>.neu-inset</Code> puts its shadow at
+            the top and a faint sheen at the bottom. The old values had a 70% white line
+            along the bottom inside face — correct on white, a bright scratch across a
+            dark groove here.
           </p>
         </UXNote>
       </DocSection>
 
       <DocSection
-        title="The glass recipe, and why the fill went DOWN as the blur went UP"
-        description="38% fill, 44px blur, 180% saturation, a specular top edge — and it disappears entirely until something scrolls under it."
+        title="The glass recipe"
+        description="A fill that is the plane's own, 44px of blur, 180% saturation, a dark barrier and a specular top edge — and it disappears entirely until something scrolls under it."
       >
         <SpecTable
           columns={["Ingredient", "Value", "What it is actually for"]}
           rows={[
-            ["Fill", "--color-glass, white @ 38%", "Was 55%. Lowered so the colour of the page genuinely comes through, rather than the bar being a white strip that happens to be slightly see-through."],
-            ["Blur", "--blur-glass, 44px", "Was 20px. This is what PAYS for the lower fill: readability over a busy backdrop comes from destroying high-frequency detail, not from opacity. A smooth wash can be sat on at 38% where a sharp one could not."],
+            ["Fill", "--color-glass = var(--plane-fill)", "One value, so chrome and content cannot disagree about what they are made of. It is the plane's 18% L at 0.72 alpha, not a copy of it."],
+            ["Blur", "--blur-glass, 44px", "Readability over a busy backdrop comes from destroying high-frequency detail, not from opacity. A smooth wash can be sat on at an alpha a sharp one could not."],
             ["Saturation", "--saturate-glass, 180%", "The half people forget. Averaging many colours desaturates them, so blur alone yields a grey, washed-out panel. Pushing saturation back up is the difference between frosted glass and a translucent grey rectangle."],
-            ["Barrier layer", "--color-glass-barrier, white @ 18%", "Was 28%. Still mandatory, still the thing that turns \u201ccontrast is usually fine\u201d into \u201ccontrast is guaranteed\u201d."],
+            ["Barrier layer", "--color-glass-barrier, oklch(14% 0.012 255 / 0.34)", "Mandatory, and DARK — it used to be a white 18% wash, which is the correct direction only while the ink is dark. Still the thing that turns “contrast is usually fine” into “contrast is guaranteed”."],
             ["Specular edge", "inset 0 1px 0 white @ 55%", "A bright hairline along the top inside face. Real glass catches light on its top bevel, and this one line is most of why the panel reads as a physical pane rather than as reduced opacity."],
+            ["Edge + lift", "1px --color-line, plus --shadow-lg", "Rule 3, shipped inside the utility rather than left to the call site."],
           ]}
         />
-        <UXNote title="Measured, not eyeballed">
+        <UXNote title="Where the floor is measured">
           <p>
-            Lowering a fill is where a translucent bar usually becomes unreadable, so
-            the floor was computed rather than judged. Against a deliberately
-            pessimistic backdrop — a quarter of the bar covered by a near-black button
-            — <Code>ink</Code> holds at <strong>14.3:1</strong> and{" "}
-            <Code>ink-secondary</Code> at <strong>6.5:1</strong>. Over ordinary light
-            content both are far higher. <Code>ink-tertiary</Code> falls to 4.26:1
-            there, which is why the topbar carries nothing below secondary.
+            The plane is not the binding case and neither is the glass — the{" "}
+            <strong>card</strong> is, because it is the lightest thing most text sits on.
+            Every ink level clears 4.5:1 there (tertiary at <strong>5.10:1</strong>), and
+            on the bare plane every level is higher; the glass adds a dark barrier layer
+            on top of that. The full table is on{" "}
+            <Code>Color</Code>.
+          </p>
+          <p>
+            That is the opposite of the situation this kit was in on a light ground, where
+            chrome was the risky surface and content was safe. What flipped it is the
+            cap: the surface with a guaranteed backdrop stopped being the exception.
           </p>
         </UXNote>
 
@@ -313,13 +435,14 @@ export default function ElevationDocs() {
             they do is draw a rectangle over the page. So the topbar renders fully
             transparent and materialises the moment content actually arrives
             underneath, driven by <Code>data-lifted</Code> on the element and the{" "}
-            <Code>useScrolled</Code> hook.
+            <Code>useScrolled</Code> hook. The barrier layer fades with it, because at
+            rest the backdrop is one we control.
           </p>
           <p>
             <strong>It is opt-in, and only the topbar takes it.</strong> The session
-            rails and the composer always have canvas content behind them, so they are
-            always glass; an element with no <Code>data-lifted</Code> attribute is
-            untouched by those rules.
+            rails and the composer always have content behind them, so they are always
+            glass; an element with no <Code>data-lifted</Code> attribute is untouched by
+            those rules.
           </p>
         </UXNote>
         <DontNote>

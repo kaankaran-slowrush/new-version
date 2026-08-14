@@ -71,7 +71,7 @@ const tooltipPopupVariants = cva(
         inverted: "bg-ink text-canvas",
         /* For the rare tooltip over inverted/media chrome, where a dark chip
            would disappear into its own background. */
-        surface: "bg-surface text-ink shadow-md",
+        surface: "bg-surface-solid text-ink shadow-md",
       },
     },
     defaultVariants: {

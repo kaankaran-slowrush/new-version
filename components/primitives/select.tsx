@@ -120,7 +120,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerComponent
 );
 
 const selectPopupVariants = cva([
-  "panel-edge rounded-2xl bg-surface p-1.5 shadow-md outline-none",
+  "panel-edge rounded-2xl bg-surface-solid p-1.5 shadow-md outline-none",
   "min-w-[var(--anchor-width)]",
   "origin-(--transform-origin)",
   "transition-[opacity,scale,translate]",

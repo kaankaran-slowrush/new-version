@@ -38,7 +38,7 @@ import { cn } from "@/lib/cn";
      panel grows out of its trigger's edge. The 4px directional slide is what
      makes the connection legible without drawing a literal arrow.
    • NO ARROW by default, even though Base UI provides `Popover.Arrow`. The panel
-     carries a real 1.5px `.panel-edge` border, and that border cannot be continued
+     carries a real `.panel-edge` border, and that border cannot be continued
      around a rotated square without a visible seam where the arrow meets the
      panel — the thicker the edge, the worse the seam, so this got *more* true when
      definition moved from shadow ring to border. Proximity, `sideOffset={6}` and
@@ -54,7 +54,7 @@ import { cn } from "@/lib/cn";
 
 const popoverPopupVariants = cva(
   [
-    "panel-edge flex flex-col rounded-2xl bg-surface text-ink shadow-md outline-none",
+    "panel-edge flex flex-col rounded-2xl bg-surface-solid text-ink shadow-md outline-none",
     "max-h-[var(--available-height)] max-w-[var(--available-width)]",
     "origin-(--transform-origin)",
     "transition-[opacity,scale,translate]",

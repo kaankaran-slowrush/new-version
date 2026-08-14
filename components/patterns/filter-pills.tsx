@@ -97,7 +97,10 @@ const pillVariants = cva(
       {
         variant: "solid",
         active: false,
-        class: "bg-surface text-ink-secondary shadow-xs hover:bg-surface-hover hover:text-ink",
+        /* `raised-hover` for the same reason the secondary Button uses it: this
+           pill paints the card tier at rest, so its hover has to be a step above
+           that rather than the token meant for transparent-at-rest things. */
+        class: "bg-surface text-ink-secondary shadow-xs hover:bg-surface-raised-hover hover:text-ink",
       },
       {
         variant: "solid",

@@ -75,7 +75,11 @@ const inputVariants = cva(
         false: "hover:border-line",
       },
       disabled: {
-        true: "cursor-not-allowed bg-surface text-ink-muted",
+        /* `surface-disabled`, which is `transparent`. The affordance of an input
+           is its recess, so disabling it removes the well — but with a RAISED card
+           tier, painting `bg-surface` here would make a disabled control brighter
+           than an enabled one. Flat means flat. */
+        true: "cursor-not-allowed bg-surface-disabled text-ink-muted",
       },
     },
     defaultVariants: {

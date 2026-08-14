@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/primitives";
 import { MeterBar } from "@/components/patterns";
-import { ThemeToggle } from "./theme-toggle";
 import { PLATFORM_NAV, PRIMARY_NAV } from "@/lib/nav";
 import { BALANCE } from "@/lib/mock/models";
 import { WORKSPACE } from "@/lib/mock/sessions";
@@ -235,7 +234,6 @@ export function TopNav() {
           like they are, and it is the one control here that changes nothing about
           the workspace — so it does not belong inside the account menu, where every
           other item is a destination or an action. */}
-      <ThemeToggle />
 
       {/* ---- Account. The workspace switcher lives in here now. ---- */}
       <DropdownMenuRoot>

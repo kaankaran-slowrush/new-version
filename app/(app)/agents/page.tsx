@@ -162,10 +162,22 @@ export default function AgentsPage() {
 
             {/* Straight into the workspace — no intermediate "name your session"
                 modal. The title is derived from the first prompt and editable
-                afterwards, which is one less decision before any value. */}
+                afterwards, which is one less decision before any value.
+
+                SECONDARY, NOT PRIMARY, AND IT USED TO BE PRIMARY. Two agents render
+                side by side as equal peers, so `primary` put two full-width
+                near-white bars on one screen — the loudest object the product has,
+                spent twice, on a page whose whole question is "these two are
+                different, pick one". Two things shouting equally is the same as
+                neither leading.
+
+                It was also compensating for something that has since been fixed: it
+                was the only object with a real fill back when a Card painted
+                nothing, so it was carrying the card's job as well as its own. The
+                card is an object now. The button can go back to being a button. */}
             <Link
               href={SESSIONS[0] ? `/agents/${SESSIONS[0].id}` : "/agents"}
-              className={buttonVariants({ variant: "primary", size: "xl" })}
+              className={buttonVariants({ variant: "secondary", size: "xl" })}
             >
               Start session
               <ArrowRight />

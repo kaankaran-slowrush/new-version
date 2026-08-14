@@ -103,8 +103,8 @@ const radioVariants = cva(
     "hover:bg-surface-active",
     "data-[checked]:border-accent data-[checked]:bg-accent",
     "data-[invalid]:border-danger",
-    "data-[disabled]:cursor-not-allowed data-[disabled]:border-line data-[disabled]:bg-surface",
-    "data-[disabled]:hover:bg-surface",
+    "data-[disabled]:cursor-not-allowed data-[disabled]:border-line data-[disabled]:bg-surface-disabled",
+    "data-[disabled]:hover:bg-surface-disabled",
     "data-[disabled]:data-[checked]:border-ink-muted data-[disabled]:data-[checked]:bg-ink-muted",
   ],
   {

@@ -38,12 +38,22 @@ export const buttonVariants = cva(
         primary: [
           "bg-action text-action-ink shadow-xs",
           "hover:bg-action-hover",
-          "disabled:bg-ink-muted disabled:text-white",
+          /* A DISABLED CONTROL MUST RECEDE, and `bg-ink-muted` inverted when the
+             ground did: at luminance 0.24 that mid grey is brighter than the card
+             AND brighter than the plane, so a disabled Run button was the single
+             brightest object on the page. It dropped to the card tier instead, with
+             a muted label — flat, quiet, and unmistakably not pressable. Same
+             inversion, same fix, as the disabled form controls. */
+          "disabled:bg-surface disabled:text-ink-muted disabled:shadow-none",
         ],
         /* Default for most actions. Reads as a real, liftable object. */
         secondary: [
           "bg-surface text-ink shadow-sm",
-          "hover:bg-surface-hover",
+          /* `raised-hover`, not `surface-hover`. A `hover:bg-*` REPLACES the fill
+             rather than overlaying it, so a control already painting the card tier
+             hovering to the transparent-at-rest token goes 0.07 -> 0.09: a 1.03x
+             move, i.e. no hover. See the two state tokens in tokens.css. */
+          "hover:bg-surface-raised-hover",
           "disabled:text-ink-muted disabled:shadow-xs",
         ],
         /* Lowest emphasis. For toolbars and dense rows where a bordered button
@@ -56,9 +66,15 @@ export const buttonVariants = cva(
         /* Destructive. Solid fill is reserved for confirmation inside a dialog —
            in a normal row, prefer `ghost-danger` so red is not shouting at rest. */
         danger: [
-          "bg-danger text-white shadow-xs",
+          /* `text-danger-text`, not `text-white`. The danger fill is a LIGHT salmon
+             on this ground, so white on it measured 1.89:1 — the destructive
+             confirmation button was the least legible control in the product. Dark
+             ink on it reads 9.9:1. This is the same rule the accent fill already
+             follows with `--color-accent-text`, and it is why a fill token and its
+             label token have to move together. */
+          "bg-danger text-danger-text shadow-xs",
           "hover:brightness-110",
-          "disabled:bg-ink-muted",
+          "disabled:bg-surface disabled:text-ink-muted disabled:shadow-none",
         ],
         "ghost-danger": [
           "bg-transparent text-danger",

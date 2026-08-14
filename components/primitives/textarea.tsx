@@ -69,7 +69,7 @@ const textareaVariants = cva(
         false: "hover:border-line",
       },
       disabled: {
-        true: "cursor-not-allowed bg-surface text-ink-muted",
+        true: "cursor-not-allowed bg-surface-disabled text-ink-muted",
       },
     },
     defaultVariants: {

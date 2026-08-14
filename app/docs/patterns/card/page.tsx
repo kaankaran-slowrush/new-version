@@ -30,7 +30,7 @@ export default function CardDocs() {
       <DocHeader
         eyebrow="Patterns"
         title="Card & surfaces"
-        lede="Card is the default container for a discrete unit of content, and on the light and dim themes it is opaque. GlassPanel is the exception, licensed for navigational chrome only. Getting the boundary between those two right is most of what makes this system read as considered."
+        lede="Card is the default container for a discrete unit of content, and it is a raised translucent tier: 7% white over the plane, sampled at 1.27× separation, bounded by a 1px hairline. GlassPanel is the same material with a blur behind it, licensed for navigational chrome. Knowing which of the two a thing is remains most of what makes this system read as considered."
       />
 
       <DocSection
@@ -66,7 +66,7 @@ export default function CardDocs() {
               "Card",
               "div",
               "18px radius, 24px padding",
-              "bg-surface, text-ink, shadow-sm \u2014 all three resolve to nothing under Spatial",
+              "bg-surface (7% white) + .panel-edge + shadow-sm, at text-ink",
             ],
             [
               "CardHeader",
@@ -126,6 +126,68 @@ export default function CardDocs() {
             that identifies it.
           </p>
         </UXNote>
+      </DocSection>
+
+      <DocSection
+        title="What a Card is made of"
+        description="A raised translucent tier over the plane. This page described it as an opaque white box for two releases, and it was never that."
+      >
+        <SpecTable
+          columns={["Ingredient", "Value", "What it does"]}
+          rows={[
+            ["Fill", "bg-surface — oklch(100% 0 0 / 0.07)", "A white alpha, so it lifts whatever it lands on by the same perceptual amount. Sampled from the rendered pixels it sits 1.27× above the plane and 1.34× above a sunken fill."],
+            ["Edge", ".panel-edge — 1px of --color-line at 14% white", "With no usable drop shadow on a ground this dark, the edge is most of what says “object”. It composites at 1.55× the plane, not 1.27×, because .panel-edge clips the card's own fill to the padding box so the border is never diluted by it."],
+            ["Lift", "shadow-sm — an inset specular bevel plus a 2px contact shadow", "Not a blur. See Elevation & glass for why a drop shadow has nothing to remove at luminance 0.039."],
+            ["Ink", "text-ink, with the section components stepping down", "8.74 · 6.23 · 5.10 for ink / secondary / tertiary ON the card, which is the worst ground for text in the product."],
+          ]}
+        />
+        <UXNote title="0.07 is solved, not chosen">
+          <p>
+            It is the largest alpha that keeps every ink level above 4.5:1 on the card
+            while putting the card a readable distance from the plane. Above ~0.08{" "}
+            <Code>--color-ink-tertiary</Code> fails; below ~0.05 the card stops
+            separating — roughly 1.10× is where two large adjacent fills merge into one.
+            Both the plane&apos;s alpha and this one were solved against{" "}
+            <strong>tertiary</strong> rather than against <Code>ink</Code>, because
+            tertiary is the level real information lives at and the first to fail as
+            either tier lightens.
+          </p>
+          <p>
+            <strong>The card tier is not decoration.</strong> It was{" "}
+            <Code>transparent</Code> for one release, on a rule borrowed from a
+            single-screen mockup — &ldquo;one plane, no nested surfaces&rdquo;. The
+            product has fifteen grids and rails of <em>peer</em> cards, and with nothing
+            painting, three model cards side by side read as one wall of text. It also
+            silently broke the type system, whose stated doctrine is that the serif/sans
+            boundary and the plane/surface boundary are the same boundary — with no
+            surface there was no boundary for it to be.
+          </p>
+        </UXNote>
+        <DontNote>
+          <p>
+            <strong>
+              <Code>.surface-veil</Code> is not what makes a Card translucent. It does
+              nothing at all.
+            </strong>{" "}
+            <Code>Card</Code> carries both <Code>bg-surface</Code> and{" "}
+            <Code>surface-veil</Code>, and Tailwind orders{" "}
+            <Code>@layer theme, base, components, utilities</Code>. The class is authored
+            in <Code>@layer components</Code>; the utility wins on layer order regardless
+            of specificity, so the veil contributes only its{" "}
+            <Code>background-clip</Code>. It genuinely paints in exactly one place in the
+            product — the inert composer replica on the dashboard, which carries no{" "}
+            <Code>bg-*</Code>.
+          </p>
+          <p>
+            Two consequences worth knowing. The nesting guard{" "}
+            <Code>.surface-veil .surface-veil</Code> never fires on a Card, so it is not
+            what protects you from stacked alphas — the language does that, by having one
+            plane per view and not nesting cards. And{" "}
+            <Code>--color-surface-veil</Code> is now pinned to the same value as{" "}
+            <Code>--color-surface</Code>, so anything still referencing it cannot drift
+            away from the card tier. Do not build on it.
+          </p>
+        </DontNote>
       </DocSection>
 
       <DocSection
@@ -217,21 +279,21 @@ export default function CardDocs() {
             [
               "none",
               "none",
-              "A card inside another bounded surface that already supplies the edge — a grid cell with its own hairlines, a dialog body.",
+              "A card inside another bounded surface that already supplies the edge — a grid cell with its own hairlines, a dialog body. The card keeps its .panel-edge either way, so it is still bounded.",
             ],
             [
               "xs",
               "--shadow-xs (1px ring, no blur)",
-              "Dense grids of many small cards, where a real lift per tile becomes visual noise.",
+              "Dense grids of many small cards, where a real lift per tile becomes visual noise. Note that the ring lands just outside the card's own hairline — if it reads as a doubled edge at your density, `none` is the step you want.",
             ],
             [
               "sm",
-              "--shadow-sm (ring + two soft blurs)",
-              "The default and the answer nine times out of ten. Reads as an object sitting on the page.",
+              "--shadow-sm (inset bevel + 2px contact shadow)",
+              "The default and the answer nine times out of ten. Reads as an object resting on the plane.",
             ],
             [
               "md",
-              "--shadow-md",
+              "--shadow-md (brighter bevel + two blurs)",
               "Reserved. The hover target of an interactive card, or the one card on a page that genuinely is the foreground.",
             ],
           ]}
@@ -245,10 +307,12 @@ export default function CardDocs() {
             &ldquo;this one, first&rdquo;, and it only says that while the rest stay put.
           </p>
           <p>
-            Also do not add a <Code>border</Code> to a card. Every elevation step above{" "}
-            <Code>none</Code> already includes a 1px ring; a real border on top gives you
-            a doubled edge, which is one of the fastest ways to make a light UI look
-            cheap.
+            Also do not add a <Code>border</Code> to a card.{" "}
+            <Code>Card</Code> already carries <Code>.panel-edge</Code> — one real 1px
+            hairline in <Code>--color-line</Code> — and a second border on top of it is a
+            doubled edge, which is one of the fastest ways to make a UI look cheap. The
+            edge is why <Code>sm</Code> and <Code>md</Code> carry no ring in the first
+            place.
           </p>
         </DontNote>
       </DocSection>
@@ -292,6 +356,15 @@ export default function CardDocs() {
             approached. A surface that responds to being pressed but not to being
             reached for reads as inert until the moment you commit — which is the wrong
             way round, because the hover is where the affordance needs to be announced.
+          </p>
+          <p>
+            <strong>The hover step is the specular bevel brightening, 0.10 → 0.16</strong>{" "}
+            — that is the whole difference between <Code>shadow-sm</Code> and{" "}
+            <Code>shadow-md</Code> at this end of the scale. It has to be, because a fill
+            change cannot do the job: hovering <Code>--color-surface</Code> (0.07) to{" "}
+            <Code>--color-surface-hover</Code> (0.09) is a <strong>1.03× move</strong>,
+            which is no hover at all. This variant&apos;s affordance had entirely
+            evaporated before the bevel took it over.
           </p>
           <p>
             <Code>hover:-translate-y-0.5</Code> is the whole lift: <strong>2px</strong>.
@@ -480,37 +553,45 @@ export default function CardDocs() {
               "(the effect)",
               ".glass in globals.css",
               "—",
-              "bg --color-glass (white 55%), backdrop-filter blur 20px, ::before barrier fill at white 28%, box-shadow --shadow-lg.",
+              "bg --color-glass, which IS var(--plane-fill); backdrop-filter blur(44px) saturate(180%); ::before barrier fill at oklch(14% 0.012 255 / 0.34); a 1px --color-line edge; box-shadow = an inset specular hairline plus --shadow-lg.",
             ],
           ]}
         />
 
         <UXNote title="The three glass rules">
           <p>
-            <strong>1 · Navigational chrome only \u2014 except under Spatial.</strong>{" "}
-            Topbar, side rails, composer, floating command surfaces. Never body content,
-            never a data-dense card, never anything a user reads for longer than a
-            glance. If the thing holds information rather than navigation, it is a{" "}
-            <Code>Card</Code> \u2014 reading beats effect, every time.
+            <strong>1 · Chrome and content are the same material now.</strong>{" "}
+            <Code>--color-glass</Code> is <Code>var(--plane-fill)</Code> — the page
+            itself is a translucent plane, so a topbar made of anything else would read
+            as a second material laid on a first. <Code>GlassPanel</Code> is still for
+            the things that <em>float</em>: topbar, side rails, composer, floating
+            command surfaces. If the thing holds information rather than navigation it
+            is a <Code>Card</Code> — the same material, sitting still.
           </p>
           <p>
-            The <Link href="/docs/foundations/spatial" className="text-accent-ink underline decoration-line-strong underline-offset-2">Spatial theme</Link>{" "}
-            is the single licensed exception, and it does not soften this rule so much
-            as pay for it: the content surface there is one translucent plane, and it is
-            only legible because the photograph behind it is held under a measured
-            luminance cap. Translucent content without that cap is still the mistake
-            this rule exists to prevent \u2014 under Spatial, <Code>Card</Code> stops
-            painting entirely and the plane underneath is what you see.
+            <strong>What buys that is the backdrop cap, and nothing else does.</strong>{" "}
+            The old form of this rule — chrome only, never content — existed
+            because a sheer fill over <strong>arbitrary</strong> content makes contrast a
+            matter of luck. In{" "}
+            <Link href="/docs/foundations/spatial" className="text-accent-ink underline decoration-line-strong underline-offset-2">the one design language</Link>{" "}
+            what sits behind the plane is a photograph held under{" "}
+            <Code>--backdrop-cap</Code>, which pins its brightest possible pixel to 0.22
+            luminance, so the worst case is imposed rather than hoped for. Translucent
+            content <em>without</em> that cap is still exactly the mistake the rule
+            existed to prevent.
           </p>
           <p>
             <strong>2 · The barrier layer is mandatory,</strong> and it is already inside
-            the utility. <Code>.glass::before</Code> paints a solid low-opacity fill
-            beneath the content, because <Code>--color-glass</Code> on its own is too
-            sheer for text to survive an arbitrary backdrop. That layer is the difference
-            between contrast that is guaranteed and contrast that is usually fine. This
-            is the reason to use <Code>GlassPanel</Code> or <Code>.glass</Code> rather
-            than hand-rolling <Code>bg-white/55 backdrop-blur</Code>: you will get 90% of
-            the look and lose the part that makes it legible.
+            the utility. <Code>.glass::before</Code> paints{" "}
+            <Code>--color-glass-barrier</Code> beneath the content —{" "}
+            <Code>oklch(14% 0.012 255 / 0.34)</Code>, a <em>dark</em> fill now, because
+            the ink on top of it is near-white. <Code>--color-glass</Code> on its own is
+            too sheer for text to survive whatever drifts under a fixed bar; the barrier
+            is the difference between contrast that is guaranteed and contrast that is
+            usually fine. That is the reason to use <Code>GlassPanel</Code> or{" "}
+            <Code>.glass</Code> rather than hand-rolling a translucent fill with a{" "}
+            <Code>backdrop-blur</Code>: you will get 90% of the look and lose the part
+            that makes it legible.
           </p>
           <p>
             <strong>3 · Always paired with elevation.</strong> Translucency on its own
@@ -525,18 +606,23 @@ export default function CardDocs() {
         <DontNote>
           <p>
             <strong>Glass over a flat fill is a blur of nothing.</strong> The effect is
-            only worth its cost when there is something behind it to refract — pair it
-            with <Code>.ambient-ground</Code>. Over a solid canvas you have paid for a{" "}
-            <Code>backdrop-filter</Code>, which is expensive and compositor-bound, and
+            only worth its cost when there is something behind it to refract. In the
+            product that is the backdrop photograph; in these docs it is{" "}
+            <Code>.ambient-ground</Code>, a frozen static sample kept for examples that
+            need a busy backdrop inside a fixed box. Over a solid fill you have paid for
+            a <Code>backdrop-filter</Code>, which is expensive and compositor-bound, and
             bought a slightly milky rectangle.
           </p>
           <p>
-            <strong>And not on transient overlays.</strong> A dropdown or dialog appears
-            over content you do not control — a table, an image, a wall of text. Blurring
-            that does not make it readable, it makes it busy. Menus, popovers and dialogs
-            in this kit are opaque <Code>bg-surface</Code> with{" "}
-            <Code>shadow-md</Code>. Glass is for surfaces that are always there, whose
-            backdrop you own.
+            <strong>And never on a transient overlay.</strong> A dropdown or dialog
+            appears over content nothing controls — a table, generated media, another
+            menu — so no cap protects it and it cannot be see-through at any value and
+            still carry a promise. All five overlays in this kit take{" "}
+            <Code>bg-surface-solid</Code> (0.94) with <Code>shadow-md</Code> and{" "}
+            <strong>no backdrop-filter at all</strong>: blurring an already-blurred field
+            buys nothing, since the plane is smooth at 40px and a second pass is visually
+            identical at the cost of a full compositor pass. Ink on one measures{" "}
+            <strong>15.68:1</strong>.
           </p>
           <p>
             A handful of glass surfaces per view, not a grid of them. Degradation is
@@ -603,12 +689,13 @@ export default function CardDocs() {
         <SpecTable
           columns={["The thing", "Surface", "Why"]}
           rows={[
-            ["A unit of content", "Card, bg-surface, shadow-sm", "Opaque white on the warm canvas is what separates content from chrome."],
+            ["A unit of content", "Card — bg-surface, panel-edge, shadow-sm", "The raised tier, 1.27× the plane. Raised is lighter; that is the whole elevation system."],
             ["An artefact plus actions on it", "Card variant=\"footerStrip\"", "Read and act become two zones."],
-            ["Inert content you read or copy", "bg-surface-sunken, no shadow", "Sunken says \"not a control\" — code blocks, tracks, value fields."],
-            ["Persistent navigation", "GlassPanel", "The one licensed use of translucency."],
-            ["A transient overlay", "bg-surface, shadow-md", "Unpredictable backdrop; opacity is the only safe choice."],
-            ["A grid cell in a dense table of tiles", "Card elevation=\"xs\"", "Ring without blur: definition at scale, without a field of shadows."],
+            ["Inert content you read or copy", "bg-surface-sunken, no shadow", "Sunken says \"not a control\" — code blocks, tracks, value fields. It is BLACK at 28%, so an inset can never be confused with a card."],
+            ["Persistent navigation that floats", "GlassPanel", "The plane's own material plus a blur and a lift. Same substance as a Card, different job."],
+            ["A transient overlay", "bg-surface-solid, shadow-md, no blur", "Nothing imposes a cap behind it, so it must occlude rather than reveal."],
+            ["A control sitting directly on a photograph", "bg-control-over-media (or -chip- for a label)", "The one surface whose backdrop the system does not control. A chip may let the image read through; a control is a target and has to look pressable."],
+            ["A grid cell in a dense table of tiles", "Card elevation=\"xs\" or \"none\"", "The card's hairline is already the boundary — add the ring only if the tiles need more separation than that."],
           ]}
         />
 
