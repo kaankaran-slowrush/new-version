@@ -101,9 +101,16 @@ export function ShowroomView({
                 }
               >
                 {/* Auto leads the rail, in its own treatment. Same width as a card
-                    so the snap rhythm is unbroken, but visibly not a model. */}
+                    so the snap rhythm is unbroken, but visibly not a model.
+
+                    `h-full` is not cosmetic: CardRail wraps every child in an
+                    `h-full` flex item precisely so a short card fills the row, and
+                    this one never stretched into it. Measured 226px against its
+                    peers' 421px — a 195px step in a rail of things presented as
+                    equivalent, which reads as a rendering fault rather than as a
+                    distinction. */}
                 {auto ? (
-                  <Card className="flex w-72 shrink-0 flex-col justify-between gap-4 border border-accent/25 bg-accent-soft/50 p-5">
+                  <Card className="flex h-full w-72 shrink-0 flex-col justify-between gap-4 border border-accent/25 bg-accent-soft/50 p-5">
                     <div>
                       <div className="mb-2 flex items-center gap-2">
                         <Sparkles className="size-4 shrink-0 text-accent-ink" />

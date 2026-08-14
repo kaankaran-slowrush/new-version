@@ -209,13 +209,23 @@ export const CardRail = React.forwardRef<HTMLElement, CardRailProps>(
                  being compressed. Tiles came out at wildly different widths and the
                  badges overlaying their covers collided.
 
-                 `h-full` so a short card fills the row rather than leaving its
-                 neighbour hanging below it.
+                 NO `h-full` HERE, AND IT USED TO CARRY ONE — with the comment "so a
+                 short card fills the row". It did the exact opposite, and the reason
+                 is a flexbox rule worth knowing: `height: 100%` makes an item's cross
+                 size no longer `auto`, which SUPPRESSES the default `stretch`. The
+                 percentage then resolves against a container whose own height is
+                 auto, so it falls back to the content height. The class that was
+                 there to equalise the row was the thing preventing it.
+
+                 Measured on /models: the Auto card came out 226px beside 421px
+                 peers — a 195px step in a rail of things presented as equivalent.
+                 With this off, `stretch` does the job and each card fills the row
+                 with its own `h-full`.
 
                  snap-start is applied HERE rather than asked of the caller. A rail
                  whose snapping depends on every consumer remembering a class is a
                  rail that stops snapping the first time someone adds a card. */
-              <div key={i} className="h-full shrink-0 snap-start">
+              <div key={i} className="shrink-0 snap-start">
                 {child}
               </div>
             ) : (

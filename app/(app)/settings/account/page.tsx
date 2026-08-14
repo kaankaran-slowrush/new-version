@@ -27,7 +27,11 @@ export default function AccountSettingsPage() {
         description="Your profile, notification preferences, and signed-in devices."
       />
 
-      <div className="max-w-3xl space-y-6">
+      {/* The section cards fill the column; the FIELDS inside them are what carry a
+          measure — every Input here is already `max-w-sm`. This wrapper used to be
+          `max-w-3xl`, which pinned the whole page to 768px inside a 1328px column and
+          left 40% of the width empty. Constrain the input, not the panel. */}
+      <div className="space-y-6">
         <Card className="anim-rise stagger-2">
           <SectionHeader level={3} as="h2" title="Profile" />
           <div className="mb-5 flex items-center gap-4">
@@ -40,7 +44,11 @@ export default function AccountSettingsPage() {
               Change avatar
             </Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* `max-w-2xl` on the grid rather than on the page. The section card fills
+              the column now, but a name and an email field stretched to 650px each
+              is not a form, it is a stretched form — the measure belongs to the
+              fields. */}
+          <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="acc-name" className="mb-1.5 block text-sm font-medium text-ink">
                 Display name

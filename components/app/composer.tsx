@@ -69,13 +69,20 @@ export interface ComposerProps {
   /** In-flight generation, if any. Drives the status banner — independent of the
       mode selected for the NEXT prompt. */
   generating?: { modality: Modality; etaLabel: string } | null;
+  /* What the session has been making. The composer opens in this mode rather than
+     always in `video`, which is what it did — so an audio session offered "Describe
+     the video you want to generate…" under a finished voiceover, and an image
+     session did the same under a photograph. The mode is still the user's to
+     change; this only decides where it starts, and the session's own history is a
+     better guess than a constant. */
+  defaultMode?: Modality;
   onStop?: () => void;
 }
 
-export function Composer({ generating, onStop }: ComposerProps) {
-  const [mode, setMode] = React.useState<Modality>("video");
+export function Composer({ generating, defaultMode = "video", onStop }: ComposerProps) {
+  const [mode, setMode] = React.useState<Modality>(defaultMode);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [modelId, setModelId] = React.useState(() => defaultModelFor("video").id);
+  const [modelId, setModelId] = React.useState(() => defaultModelFor(defaultMode).id);
   const [value, setValue] = React.useState("");
 
   const models = modelsFor(mode);

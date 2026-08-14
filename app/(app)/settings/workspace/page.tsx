@@ -31,7 +31,11 @@ export default function WorkspaceSettingsPage() {
         description="Name, members, and defaults for this workspace."
       />
 
-      <div className="max-w-3xl space-y-6">
+      {/* The section cards fill the column; the FIELDS inside them are what carry a
+          measure — every Input here is already `max-w-sm`. This wrapper used to be
+          `max-w-3xl`, which pinned the whole page to 768px inside a 1328px column and
+          left 40% of the width empty. Constrain the input, not the panel. */}
+      <div className="space-y-6">
         <Card className="anim-rise stagger-2">
           <SectionHeader level={3} as="h2" title="General" />
           <div className="space-y-4">

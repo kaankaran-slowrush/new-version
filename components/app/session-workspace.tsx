@@ -237,6 +237,9 @@ export function SessionWorkspace({
           </div>
 
           <Composer
+            /* The last turn's modality, not a constant. A session that has been
+               making audio should not open its composer asking for a video. */
+            defaultMode={turns[turns.length - 1]?.modality ?? "video"}
             generating={
               inFlight
                 ? { modality: inFlight.modality, etaLabel: inFlight.etaLabel ?? "" }

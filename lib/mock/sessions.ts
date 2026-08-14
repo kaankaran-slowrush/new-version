@@ -88,6 +88,116 @@ export const TURNS: Turn[] = [
   },
 ];
 
+/* ONE TURN SET PER SESSION, keyed by id.
+
+   Every session used to resolve to TURNS above, and the route file said so in a
+   comment — which made it deliberate but did not make it right. The session list
+   advertises "Onboarding voice lines · Read the six onboarding steps in a calm,
+   unhurried tone" with an audio glyph; opening it showed a video being rendered of
+   a ceramic cup. Four rows in a list, four different promises, one screen behind
+   all of them. A reviewer clicks the second one and the kit has already contradicted
+   itself.
+
+   These are deliberately SHORTER than the flagship set. TURNS exercises every state
+   on purpose — done, failed, generating, text, audio — and repeating that four times
+   would be noise. These exist to make each row in the list lead somewhere that
+   matches what it said, and to give the workspace three shapes the flagship does not
+   have: a finished session with nothing in flight, a two-turn one, and one whose
+   last turn is an image rather than a video. */
+export const TURNS_BY_SESSION: Record<string, Turn[]> = {
+  "cup-product-shot": TURNS,
+
+  /* Finished, nothing in flight, and the only session whose turns are all the same
+     modality — it is a variations run, so the shape of the work is "same brief,
+     four cuts" rather than a chain across modalities. */
+  "launch-teaser": [
+    {
+      id: "lt1",
+      modality: "video",
+      prompt: "Four 9:16 cuts from the red seamless set, logo held on the last frame",
+      relativeTime: "2h ago",
+      state: "done",
+      image: "/artifacts/heels-red.jpg",
+      aspect: "16x9",
+      duration: "0:12",
+    },
+    {
+      id: "lt2",
+      modality: "video",
+      prompt: "Same cut but hold the last frame two seconds longer",
+      relativeTime: "2h ago",
+      state: "done",
+      image: "/artifacts/cars-yellow.jpg",
+      aspect: "16x9",
+      duration: "0:14",
+    },
+    {
+      /* STOPPED, not failed. The user changed their mind mid-render, which is a
+         different state from a render that broke — and it is the one state the
+         flagship set does not cover, so it lives here rather than nowhere. */
+      id: "lt3",
+      modality: "video",
+      prompt: "Try it once more with the logo entering from the left",
+      relativeTime: "2h ago",
+      state: "stopped",
+      aspect: "16x9",
+    },
+  ],
+
+  /* Two turns, and the shortest session in the fixture. A voiceover job is a script
+     and a read — there is no chain to show, and padding it out would misrepresent
+     how the work actually goes. */
+  "voice-lines": [
+    {
+      id: "vl1",
+      modality: "text",
+      prompt: "Write six onboarding steps, one sentence each, no exclamation marks",
+      relativeTime: "Yesterday",
+      state: "done",
+      text: "Connect your first model. Pick an agent to route through it. Describe what you want in your own words. Watch it build, and stop it if it drifts. Keep what works, discard what does not. Invite the person who has to approve it.",
+    },
+    {
+      id: "vl2",
+      modality: "audio",
+      prompt: "Read those six steps in a calm, unhurried tone",
+      relativeTime: "Yesterday",
+      state: "done",
+      duration: "0:38",
+    },
+  ],
+
+  /* Ends on an image, which is what the list row promises, and the only PUBLIC
+     session in the set — so it is also where a shared session's chrome gets seen. */
+  "hero-explorations": [
+    {
+      id: "he1",
+      modality: "image",
+      prompt: "Wide desaturated interior, single light source from the left, no people",
+      relativeTime: "3 days ago",
+      state: "done",
+      image: "/artifacts/interior-warm.jpg",
+      aspect: "16x9",
+    },
+    {
+      id: "he2",
+      modality: "text",
+      prompt: "Describe the lighting setup that would produce this",
+      relativeTime: "3 days ago",
+      state: "done",
+      text: "One 4x6 softbox camera-left at roughly head height, feathered so the falloff lands before the far wall. No fill — the shadow side is doing the work. A flag behind the lens to keep the window from spilling back in.",
+    },
+    {
+      id: "he3",
+      modality: "image",
+      prompt: "Same room, same light, but shoot it from the doorway",
+      relativeTime: "3 days ago",
+      state: "done",
+      image: "/artifacts/mug-sand.jpg",
+      aspect: "16x9",
+    },
+  ],
+};
+
 export type Visibility = "private" | "workspace" | "public";
 
 export interface SessionSummary {

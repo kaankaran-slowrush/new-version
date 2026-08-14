@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 import { SessionWorkspace } from "@/components/app/session-workspace";
 import { AGENTS } from "@/lib/mock/agents";
-import { SESSIONS, TURNS } from "@/lib/mock/sessions";
+import { SESSIONS, TURNS_BY_SESSION } from "@/lib/mock/sessions";
 
 /* The session workspace is a FOCUS MODE: it renders its own header and
-   deliberately has no app topbar (see SessionWorkspace's UX notes). Every
-   fixture session resolves to the same turn set — there is no data layer here. */
+   deliberately has no app topbar (see SessionWorkspace's UX notes).
+
+   EACH SESSION HAS ITS OWN TURNS. They all used to resolve to one set, and a
+   comment here called that deliberate — but the session list advertises four
+   different things and every row opened the same conversation, so the audio session
+   showed a video render of a ceramic cup. See TURNS_BY_SESSION. */
 
 export function generateStaticParams() {
   return SESSIONS.map((s) => ({ id: s.id }));
@@ -35,5 +39,5 @@ export default async function SessionPage({
      asserted otherwise and threw. */
   if (!agent) notFound();
 
-  return <SessionWorkspace session={session} agent={agent} turns={TURNS} />;
+  return <SessionWorkspace session={session} agent={agent} turns={TURNS_BY_SESSION[id] ?? []} />;
 }

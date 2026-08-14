@@ -43,7 +43,11 @@ import { Waveform } from "./waveform";
 
 /** Shared glass shell for both rails. */
 const railShell = [
-  "glass absolute top-4 z-(--z-rail) flex flex-col rounded-2xl",
+  /* INSET BY THE SAFE AREA, not by a hardcoded 4. These sat at `top-4 left-4` /
+     `right-4` — 16px from the display edge — which was fine when there was no safe
+     area and wrong the moment there was one: the whole product keeps 56px clear of
+     the edge on a desktop and these two were the only things that did not. */
+  "glass absolute top-(--safe-area) z-(--z-rail) flex flex-col rounded-2xl",
   "max-h-(--rail-max-height) overflow-y-auto overflow-x-hidden",
   "transition-[width] duration-(--duration-normal) ease-(--ease-out-quint)",
 ];
@@ -87,7 +91,7 @@ export function TimelineRail({
       aria-label="Session timeline"
       className={cn(
         railShell,
-        "left-4 w-(--rail-width-rest) p-2",
+        "left-(--safe-area) w-(--rail-width-rest) p-2",
         "hover:w-(--rail-width-open) focus-within:w-(--rail-width-open)",
         "group/rail",
       )}
@@ -169,7 +173,7 @@ export function MediaRail({
       aria-label="Session media"
       className={cn(
         railShell,
-        "right-4 w-(--rail-media-rest) items-center gap-2 p-2",
+        "right-(--safe-area) w-(--rail-media-rest) items-center gap-2 p-2",
         "hover:w-(--rail-media-open) focus-within:w-(--rail-media-open)",
         "group/media hidden xl:flex",
       )}
