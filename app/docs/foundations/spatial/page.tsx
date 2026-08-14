@@ -188,22 +188,31 @@ export default function SpatialDocs() {
             phone should get.
           </p>
           <p>
-            <Code>--page-max-width</Code> is therefore one number with two effects, and
-            it went <strong>1180 → 1000 → 1440</strong>. The middle step is worth
-            recording because it was wrong for a stated reason. At 1000 the ground
-            feathered out to roughly 220px of photograph each side at 1440 and the space
-            read beautifully; it also left every page looking squeezed into the middle of
-            the display, which is a worse daily cost than a thin margin is a daily gain.
-            A dashboard should fill the screen it is given.
+            That is also why the content width stopped being a fixed number. It went{" "}
+            <strong>1180 → 1000 → 1440</strong> and every one of those overshot, in
+            alternating directions: 1180 was a bordered panel inset from the viewport,
+            1000 was edgeless and beautiful and squeezed into the middle of the display,
+            1440 filled the screen and ran content to its very edge. A single width
+            cannot express <em>fill the display, but never touch it</em>, because that is
+            a maximum and a minimum and one number is only one of them.
           </p>
           <p>
-            At <strong>90rem (1440px)</strong> the ground is uniform edge to edge on a
-            laptop and the photograph survives as <strong>texture</strong> under
-            everything rather than as a view beside it — the ground is a 0.64 scrim, not
-            paint, so the image&apos;s colour and its large shapes still move underneath.
-            And the mechanism scales by itself: at 1920 the feather reopens to 240px a
-            side with no change to anything. Wide displays get the margin back; laptops
-            get their width back.
+            A <strong>safe area</strong> plus a cap says both:{" "}
+            <Code>min(96rem, calc(100% - 2 × var(--safe-area)))</Code>. The safe area is
+            a guaranteed band at the display edge that content never enters — and
+            because the ground&apos;s feather derives from the same expression, that band
+            is also the one place the photograph is always visible. One inset, one
+            reveal; they cannot drift apart because there is only one number.
+          </p>
+          <p>
+            Measured: at 1024–1440 the safe area is 56px and text starts{" "}
+            <strong>88px from the display edge</strong> once each route&apos;s own{" "}
+            <Code>px-8</Code> gutter is inside it. Below 640px it drops to 24px, which is
+            what a phone should get. Past 1600px the cap binds instead and the margins
+            grow on their own — 192px each side at 1920. <Code>100%</Code> rather than{" "}
+            <Code>100vw</Code> in that expression is load-bearing: <Code>100vw</Code>{" "}
+            includes the scrollbar gutter on Windows and most Linux desktops, so every
+            page would overflow by ~15px and gain a second permanent scrollbar.
           </p>
           <p>
             Line length is not at risk, which is the usual objection to a wide column.
@@ -368,8 +377,8 @@ export default function SpatialDocs() {
             ],
             [
               "--page-max-width",
-              "90rem",
-              "1440px. The content column AND the ground's feather, because the gradient's middle stops are calc(50% -/+ half of this). One decision, one number — widen the column and the reveal closes, narrow it and the reveal opens.",
+              "min(96rem, 100% - 2 × safe-area)",
+              "The content width AND the ground's feather, because the gradient's middle stops are calc(50% -/+ half of this). One decision, one number — whatever the safe area reserves is exactly what the ground fades out of.",
             ],
             [
               "--plane-fill",

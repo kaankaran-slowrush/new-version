@@ -133,7 +133,8 @@ export default function SpacingDocs() {
         <SpecTable
           columns={["Token", "Value", "Use for"]}
           rows={[
-            ["--page-max-width", "1180px", "Dashboard and list-page content"],
+            ["--safe-area", "24 / 40 / 56px", "The band at the display edge that content never enters. Responsive, because a constant inset is generous on a phone and invisible on a 27-inch monitor."],
+            ["--page-max-width", "min(96rem, 100% - 2 × safe)", "Dashboard and list-page content. Not a cap any more but the width itself — fill the display, never touch it."],
             ["--canvas-max-width", "640px", "The session working column, and long-form reading"],
             ["max-w-measure", "62ch", "Body copy measure. Opt-in per block, NOT a global rule — see /docs/patterns/headers"],
             ["--nav-height", "56px", "The centred topbar island. Moves with --control-height-md, which its pills track."],
