@@ -63,8 +63,8 @@ export default function DocsIntro() {
             <p className="text-sm text-ink-secondary">
               Translucency used to be reserved for navigational chrome, because
               translucency over arbitrary content is unreadable. That rule is inverted
-              here, once and deliberately: the page&apos;s own plane is glass, and it is
-              defensible only because <Code>--backdrop-cap</Code> imposes a worst case
+              here, once and deliberately: the page&apos;s own ground is translucent, and
+              it is defensible only because <Code>--backdrop-cap</Code> imposes a worst case
               behind it — a black layer that pins the brightest pixel any photograph can
               produce to 0.22 luminance, so every contrast figure in the system is a
               measurement rather than a hope. Where nothing imposes a worst case, nothing
@@ -98,7 +98,7 @@ export default function DocsIntro() {
               carve out one exception — the ambient background&apos;s drift, which earned
               its place by giving the glass something to refract. There is no exception
               now: the drifting layer was replaced by a photograph that never moves, and
-              what gives the glass something to reveal is the plane scrolling over a{" "}
+              what gives the glass something to reveal is the page scrolling over a{" "}
               <Code>fixed</Code> backdrop, which costs no animation frame at all. If you
               cannot say what a motion tells the user, it does not ship.
             </p>

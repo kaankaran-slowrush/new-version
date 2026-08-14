@@ -154,7 +154,7 @@
      which the shipped image genuinely contains.
 
        backdrop, capped                 0.3185   the photograph, held under --backdrop-cap
-       plane      (--plane-fill)        0.0388   the page. One per view.
+       ground     (--ground-scrim)      0.0383   the page. Edgeless, one per view.
        card       (--color-surface)     0.0602   raised. 1.24x the plane (see below).
        card edge  (--color-line)        0.0873   1.55x the plane (see the padding-box note)
        sunken     (--color-surface-sunken) 0.0318  inset. The card is 1.35x it.
@@ -270,8 +270,8 @@
 
   /* Text — four levels. Two is not a hierarchy, it's a flat page.
      Measured on the CARD, which is the worst ground for most text now that cards
-     paint again: ink 8.74 · secondary 6.23 · tertiary 5.10. On the bare plane every
-     level is higher. */
+     paint again: ink 8.74 · secondary 6.23 · tertiary 5.10. Directly on the ground
+     every level is 1.24x higher — the same ink over a ground 1.24x darker. */
   --color-ink: oklch(97% 0.006 255); /* primary / headings / values */
   --color-ink-secondary: oklch(86% 0.01 255); /* supporting body */
   /* THE BINDING CONSTRAINT of the whole palette. The plane's alpha and the card's
@@ -301,7 +301,7 @@
 
      WATCH THE PADDING-BOX SUBTLETY: `.panel-edge` sets `background-clip:
      padding-box`, so a card's own alpha fill does NOT paint under its border. The
-     edge therefore composites over the PLANE, not over the card — which is why it
+     edge therefore composites over the GROUND, not over the card — which is why it
      reads at 1.55x rather than the 1.25x you would get by compositing it over the
      card's own fill. Remove the clip and the edge dilutes by a third. */
   --color-line: oklch(100% 0 0 / 0.14); /* panel edges — visible on purpose */
@@ -387,8 +387,8 @@
 
      0.55 rather than 0.35 because it is now also doing the separating that a
      `backdrop-blur-[2px]` used to attempt. That blur is gone: it was a
-     full-viewport compositor pass blurring a field the plane has already blurred
-     at 40px, which is the most expensive no-op available. */
+     full-viewport compositor pass blurring a field the photograph has already been
+     rasterised out of focus into, which is the most expensive no-op there is. */
   --color-scrim-dialog: oklch(0% 0 0 / 0.55);
 
   /* THE AMBIENT SCRIM. No product route paints this any more — the photograph
@@ -615,7 +615,7 @@
      The box-shadow form survives for the one case the outline cannot serve: an
      element inside an `overflow: hidden` ancestor, where an outline is clipped and
      an inset-able shadow is not. Its inner stop is the colour it sits ON, punching
-     a gap so the accent ring reads as a ring — on this language that is the plane,
+     a gap so the accent ring reads as a ring — on this language that is the ground,
      not the canvas, since the canvas is only the failsafe floor behind the
      photograph. If you reach for this, you are in the clipped case; otherwise use
      the outline. */
@@ -703,7 +703,16 @@
   --rail-max-height: 18.75rem; /* ~4 rows, then it scrolls */
 
   --canvas-max-width: 40rem; /* 640px — reading/working column */
-  --page-max-width: 73.75rem; /* 1180px — dashboard content */
+  /* 1000px, down from 1180. THE COLUMN WIDTH AND THE PHOTOGRAPH'S MARGIN ARE THE
+     SAME DECISION: `.spatial-ground` derives its feather stops from this token, so
+     narrowing the column is what opens the reveal at the sides. At 1440 that is
+     ~220px of photograph each side instead of ~130, and it is where the sense of
+     content resting ON something rather than inside something actually comes from.
+
+     The cost is density, and it is real: run-history's seven-column table and the
+     three-up model grid both lose 180px. Both were read at 1280 and 1440 before
+     this shipped rather than assumed to be fine. */
+  --page-max-width: 62.5rem; /* 1000px — dashboard content, and the ground's width */
 
   /* Edge weight for elevated surfaces. 1px, and it USED to be 1.5px on a stated
      justification that no longer applies: "at 1px a border on a white card reads
@@ -737,19 +746,55 @@
   --meter-thickness: 3px; /* the recurring progress/metric strip */
 
   /* ---------------------------------------------------------------------------
-     THE PLANE — the page's own surface, and the five knobs that define it.
+     THE GROUND, and the material chrome is made of.
 
-     Read by one rule in globals.css, by `.glass`, and by the overlay surfaces.
-     Nothing else should reach for them.
+     THERE IS NO PAGE PANEL ANY MORE. Content used to sit on a bordered, rounded,
+     lifted rectangle inset from the viewport — a CONTAINER, which is why every
+     page read as a sheet of paper on a desk with the photograph as the mat around
+     it. Containers have edges; grounds do not. The ground replaced it: the same
+     darkness, with no shape.
 
-     THE ALPHA IS DERIVED, NOT CHOSEN, and it is solved together with the card tier
-     above it: the plane has to be dark enough that a 7% white card can sit on it
-     and still hold 4.5:1 for --color-ink-tertiary. 0.72 is where that lands. It
-     used to be 0.65, from a version of this language in which nothing sat on the
-     plane at all.
+     THE EQUALITY IS THE WHOLE TRICK. `--ground-scrim` over the capped backdrop
+     composites to luminance 0.0383; the panel it replaced was 0.0388. Every value
+     in this file was measured against that ground, so nothing underneath had to
+     move — not the card tier, not one of the eight ink levels, not the groove, not
+     either edge token. Only the boundary went away.
 
-     STILL GLASS: 28% of the capped photograph comes through, which is what the
-     blur and the saturation are for.
+     So `--ground-scrim` is not a taste knob. Change it and you have changed the
+     ground every contrast figure in this file rests on, and the whole ladder has to
+     be re-measured from rendered pixels.
+     --------------------------------------------------------------------------- */
+  --ground-scrim: oklch(0% 0 0 / 0.64);
+
+  /* Depth of field on the photograph, applied as a `filter` on the image layer
+     rather than as a `backdrop-filter` on anything above it — see the note in
+     spatial-backdrop.tsx for why that is a real distinction and not an
+     optimisation. 24px destroys the high-frequency detail that would otherwise
+     compete with text through the margins while leaving the image's large shapes
+     and its colour: below ~12px the tunnel's concentric rings still read as lines,
+     above ~40px it is a flat wash and there was no reason to ship a photograph. */
+  --backdrop-blur: 24px;
+
+  /* THE PHOTOGRAPH ITSELF, as a token rather than as a `var()` fallback written at
+     each use site. It was the latter for one build, and the two sites drifted
+     immediately: the real backdrop moved to bokeh while `.ambient-ground` — the
+     sample every glass demo in /docs sits on — was left defaulting to tunnel, so
+     the documentation showed a photograph the product no longer ships.
+
+     A workspace overrides this on :root and both follow. It still goes through the
+     same cap, which is the only reason a customer-supplied image is allowed. */
+  --backdrop-image: url("/artifacts/backdrop-bokeh.jpg");
+
+  /* ---------------------------------------------------------------------------
+     THE GLASS MATERIAL. These were `--plane-*` and defined the page panel; they now
+     define CHROME and nothing else — the nav, the two session rails, the composer,
+     the docs index, the session header, both auth panels, and `.glass` itself.
+
+     That is the boundary this kit always had and briefly lost: chrome floats OVER
+     the space, content sits IN it. A bounded blur is correct on a nav pill because
+     a nav pill IS an object; it was wrong on a page, which is the confusion the
+     plane encoded. The names stay `--plane-*` because `.glass` and every overlay
+     already read them, and renaming would be churn for no reader's benefit.
      --------------------------------------------------------------------------- */
   --plane-fill: oklch(18% 0.012 255 / 0.72);
   --plane-blur: 40px;

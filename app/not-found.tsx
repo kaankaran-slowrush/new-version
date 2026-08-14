@@ -11,12 +11,7 @@ import { SectionHeader } from "@/components/patterns";
 export default function NotFound() {
   return (
     <main className="grid min-h-dvh place-items-center px-6 py-16">
-      {/* `data-plane`, and on THIS element rather than on the `main` above it:
-          that main is a min-h-dvh centring grid, so a plane there would be a
-          full-viewport panel with the content floating in the middle of it. This
-          block is also the only thing standing between near-white text and a
-          photograph, so it is not decorative here. */}
-      <div data-plane="padded" className="w-full max-w-md text-center">
+      <div className="w-full max-w-md text-center">
         <SectionHeader
           level={1}
           align="center"

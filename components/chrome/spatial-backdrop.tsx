@@ -45,19 +45,28 @@
    Three frames ship (see public/artifacts/CREDITS.md). All three were rendered
    behind the real cap and looked at, not chosen from filenames:
 
-     backdrop-tunnel   DEFAULT. A dark radial vignette with a soft glow at centre.
-                       Effectively non-figurative — no subject, no horizon — and the
-                       concentric wall texture gives the blur something to refract,
-                       which is the point. The glow pooling behind the middle of the
-                       plane is the characteristic look.
-     backdrop-bokeh    Out-of-focus lights. Non-figurative too, but strongly
-                       coloured: cream, red and green discs read through the plane as
-                       coloured patches that argue with every status colour in the
-                       product. Available, not default.
-     backdrop-night    A storm over a city. Quietest and darkest by measurement, and
-                       rejected on looking at it — it has a horizon line and a
-                       lightning bolt, so it has a subject, and a subject competes
-                       with the interface for the whole session.
+     backdrop-bokeh    DEFAULT. Out-of-focus lights: non-figurative, and its light is
+                       spread across the frame rather than pooled in the middle.
+                       That last part is what decides it. The ground darkens the
+                       CENTRE — that is where the content column is — so a backdrop
+                       whose interest is central has its interest eaten, and only its
+                       dark corners survive into the margins where the reveal is.
+
+                       IT WAS PREVIOUSLY REJECTED, and the reason no longer applies.
+                       The objection was that its cream, red and green discs read as
+                       coloured patches arguing with the status palette. That was
+                       true when the photograph was a full-bleed ground behind
+                       everything. It now appears only in the margins, under the cap
+                       AND a 24px defocus, where the discs are soft colour fields at
+                       around 0.03 luminance — atmosphere, not shapes.
+     backdrop-tunnel   The previous default, and a good illustration of the above: a
+                       radial vignette is exactly the wrong shape for this ground.
+                       Its glow sits dead centre where the scrim is strongest, so it
+                       measured 0.008 and 0.003 in the left and right margins —
+                       effectively no photograph at all.
+     backdrop-night    A storm over a city. Rejected on looking at it — it has a
+                       horizon line and a lightning bolt, so it has a subject, and a
+                       subject competes with the interface for the whole session.
 
    A workspace overrides the image by setting `--backdrop-image` on :root to any
    `url()`. It goes through the same cap, which is the point.
@@ -70,22 +79,66 @@ export function SpatialBackdrop() {
       /* `data-spatial-backdrop` is the hook the two accessibility modes hide this
          through — which is also what cancels its download. See globals.css. */
       data-spatial-backdrop
-      /* `fixed` so the plane scrolls and the photograph does not, which is most of
-         what makes the plane read as floating in front of something. */
+      /* `fixed`, and this is the whole reason the ground can be a gradient at all.
+         Anything that scrolls can carry a paragraph through a lighter region; a
+         fixed layer cannot. See the ground note below. */
       className="pointer-events-none fixed inset-0 z-(--z-ambient)"
     >
-      {/* The photograph. Its background-image lives in globals.css rather than
-          here, so that hiding this element in the accessibility modes also prevents
-          the fetch. */}
-      <div className="spatial-backdrop-image absolute inset-0" />
+      {/* 1 · THE PHOTOGRAPH, out of focus. The blur is on the image itself rather
+             than a `backdrop-filter` on the content above it, and that is a real
+             distinction rather than an optimisation:
 
-      {/* THE CAP. Pure black at --backdrop-cap. Nothing else may go between this
-          and the plane: anything added here changes the luminance ceiling that
-          every ink token in the theme was measured against. */}
+             • A backdrop-filter needs a BOUNDARY, and a boundary is exactly the
+               thing this design is removing. The blur used to live on a bordered
+               panel; with the panel gone there is nothing to bound it.
+             • It says the true thing. The photograph is far away, so it is out of
+               focus. The cards are near, so they are sharp. That is how depth
+               actually reads, and it is why this is not just a cheaper blur.
+             • It costs less: a static rasterisation once, rather than a compositor
+               pass every frame over the whole viewport.
+
+             `scale-105` is required, not decorative. A blur samples beyond the
+             element's own box, so a blurred layer at `inset-0` fades out at all
+             four viewport edges — you would see the photograph go soft and pale
+             into a border. Overscaling pushes that falloff off-screen. */}
+      <div className="spatial-backdrop-image absolute inset-0 scale-105" />
+
+      {/* 2 · THE CAP. Pure black at --backdrop-cap. Nothing may go between this and
+             the photograph: it is what pins any image's brightest pixel to 0.22
+             luminance, and every value in the system was measured against that
+             ceiling. */}
       <div
         className="absolute inset-0 bg-black"
         style={{ opacity: "var(--backdrop-cap, 0.4)" }}
       />
+
+      {/* 3 · THE GROUND — what replaced the page panel.
+             ------------------------------------------------------------------
+             THE PROBLEM IT SOLVES. Content used to sit on a rounded, bordered,
+             lifted panel inset from the viewport. That is a CONTAINER, and a
+             container has edges, so the page read as a sheet of paper on a desk
+             with the photograph as the mat around it. The ground has to be dark
+             for text to work — but it does not have to have a boundary.
+
+             IT IS EXACTLY AS DARK AS THE PANEL WAS. 0.64 black over the capped
+             backdrop composites to luminance 0.0383; the panel was 0.0388. That
+             equality is deliberate and load-bearing: it means the card tier, all
+             eight ink levels, the groove and both edge tokens carry over with no
+             re-derivation. The darkness did not change. Its shape did.
+
+             HORIZONTAL FEATHER ONLY, and the stops come from the content column
+             rather than from taste — full strength across exactly the column,
+             fading to nothing at the viewport edge. So the reveal self-tunes: a
+             wider screen gets a wider, softer band of photograph, and below the
+             column's own width the stops clamp and the ground goes uniform, which
+             is what a phone should get.
+
+             NO VERTICAL GRADIENT, deliberately. A lighter band anywhere on the
+             vertical axis is a region that body text will scroll through, and text
+             that is legible only at certain scroll positions is worse than text on
+             a panel. The horizontal axis has no such problem: content is centred,
+             so its horizontal position never changes. */}
+      <div className="spatial-ground absolute inset-0" />
     </div>
   );
 }

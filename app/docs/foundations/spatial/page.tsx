@@ -25,30 +25,30 @@ export default function SpatialDocs() {
       <DocHeader
         eyebrow="Foundations"
         title="Spatial"
-        lede="The product's one design language. A single translucent plane over a photograph held under a measured luminance cap, with exactly one raised tier of cards on it. There were three themes; light and dim are deleted, data-theme is gone from every selector, and there is no toggle to look for. The name survives because the code still uses it — SpatialBackdrop, .spatial-backdrop-image, this route."
+        lede="The product's one design language. An edgeless ground over a photograph held under a measured luminance cap and defocused at 24px, with exactly one raised tier of cards on it. There were three themes; light and dim are deleted, data-theme is gone from every selector, and there is no toggle to look for. The name survives because the code still uses it — SpatialBackdrop, .spatial-backdrop-image, .spatial-ground, this route."
       />
 
       <DocSection
         title="The three rules"
-        description="Rule 1 changed and rule 3 changed, both because they failed in the product rather than on paper. Rule 2 is untouched, and it is now doing more work than either."
+        description="Rule 1 and rule 2 both changed, and both because they failed in the product rather than on paper. Rule 3 is the one that has now survived two passes."
       >
         <SpecTable
           columns={["Rule", "What it means", "Why"]}
           rows={[
             [
-              "One plane per view, one raised tier on it",
-              "The page sits on a single translucent panel. Cards paint one step lighter on it — a 7% white alpha — and nothing paints a third time.",
-              "Stacked translucency multiplies: two 0.72 planes composite to 0.92 effective, so the inner one reads DARKER than its parent, which is the exact inversion of what elevation means. One raised tier is the most you can have before that starts.",
+              "One ground, one raised tier on it",
+              "The page sits IN the space rather than on a surface. A fixed, edgeless layer darkens the photograph; cards paint one step lighter than it — a 7% white alpha — and nothing paints a third time.",
+              "CONTAINERS HAVE EDGES; GROUNDS DO NOT. The rule used to say 'one plane per view', which made the plane a container holding the whole document, and every page read as a sheet of paper on a desk. The one-tier half is untouched: stacked translucency multiplies, so two 0.72 fills composite to 0.92 effective and the inner one reads DARKER than its parent — the exact inversion of what elevation means.",
             ],
             [
-              "One blur per plane",
-              "Children never carry their own backdrop-filter. The plane blurs; everything inside it is opaque, an alpha fill, or nothing.",
-              "Each backdrop-filter is a separate compositor pass over its own bounds. It is also the argument that settles how overlays are built — blurring a field the plane has already blurred at 40px costs a full pass and returns a visually identical result.",
+              "Blur belongs to chrome, and to the photograph",
+              "Eight elements in the product declare a backdrop-filter — the nav, the two session rails, the composer, the docs index, the session header and the two auth panels — and nothing else may. The page spends none of that budget. Its blur is a 24px `filter` on the image layer instead.",
+              "A backdrop-filter needs a BOUNDARY, and each one is a compositor pass over its own bounds every frame. A nav pill can afford one because a nav pill IS an object. A page is not: blurring it meant inventing a boundary, and that boundary is what made the page a sheet. Moving the blur onto the photograph also says the true thing — far things are out of focus, near things are sharp.",
             ],
             [
               "Lift is a bevel and a contact shadow, never a blur",
               "--shadow-sm and --shadow-md lead with an inset specular hairline along the top inside face plus a tight contact shadow. lg and xl keep real blur.",
-              "A drop shadow works by removing light, and at the plane's luminance of 0.039 there is almost none left to remove; any blur strong enough to see reads as dirt on the glass. lg/xl belong to things that genuinely float clear of the plane — dialogs, menus, popovers — where there IS separation for a shadow to describe.",
+              "A drop shadow works by removing light, and at the ground's luminance of 0.038 there is almost none left to remove; any blur strong enough to see reads as dirt on the glass. lg/xl belong to things that genuinely float clear of the ground — chrome, dialogs, menus, popovers — where there IS separation for a shadow to describe.",
             ],
           ]}
         />
@@ -104,15 +104,23 @@ export default function SpatialDocs() {
             typographic contract true, which is a stronger argument for the tier than
             anything about how it looks.
           </p>
+          <p>
+            The card tier is also the reason removing the page panel cost nothing.{" "}
+            <strong>
+              The tier the eye needs is the one between a card and what is behind it
+            </strong>
+            , not the one between the document and the viewport — and the ground keeps
+            the first while deleting the second.
+          </p>
         </UXNote>
 
         <UXNote title="Card is not modified, and that is the point">
           <p>
             <Code>Card</Code> has 121 call sites and <strong>none of them changed</strong>{" "}
-            — not when the card tier went transparent, and not when it came back. Its
-            fill, its border and its shadow all resolve through tokens, so the only thing
-            that moved was the value of <Code>--color-surface</Code>:{" "}
-            <Code>transparent</Code> in one release,{" "}
+            — not when the card tier went transparent, not when it came back, and not when
+            the page panel underneath it was deleted. Its fill, its border and its shadow
+            all resolve through tokens, so the only thing that moved was the value of{" "}
+            <Code>--color-surface</Code>: <Code>transparent</Code> in one release,{" "}
             <Code>oklch(100% 0 0 / 0.07)</Code> in this one. A component that survives its
             own surface being deleted and reinstated without a diff is the best evidence
             in the repo for the claim in{" "}
@@ -129,6 +137,187 @@ export default function SpatialDocs() {
       </DocSection>
 
       <DocSection
+        title="The ground"
+        description="What replaced the page plane. The same darkness with no shape — and 'the same' is arithmetic here rather than a figure of speech."
+      >
+        <p className="mb-6 max-w-measure text-ink-secondary">
+          Every page used to be one rounded rectangle with a border, a radius and a lift,
+          holding the whole document, with the photograph as the frame around it. It read
+          as <strong>a sheet of paper on a desk</strong>. The cause was the rule this page
+          itself documented: &ldquo;one plane per view&rdquo; made the plane a{" "}
+          <em>container</em> when what a translucent language needs underneath text is a{" "}
+          <em>ground</em>. Containers have edges; grounds do not. The ground has to be
+          dark enough for text to survive on it — it does not have to have a boundary.
+        </p>
+
+        <p className="mb-6 max-w-measure text-ink-secondary">
+          <strong>The equality is the whole trick.</strong> <Code>--ground-scrim</Code> is
+          black at 0.64 over the already-capped backdrop, and it composites to luminance{" "}
+          <strong>0.0383</strong>. The panel it replaced was <strong>0.0388</strong>. That
+          is deliberate and load-bearing: the card tier, all eight ink levels, the groove
+          and both edge tokens carry over with <em>no re-derivation</em>. The darkness did
+          not change; its shape did. Which is also why{" "}
+          <Code>--ground-scrim</Code> is not a taste knob — change it and every figure on
+          this page has to be re-measured from rendered pixels.
+        </p>
+
+        <UXNote title="Fixed, because a scrolling gradient is a legibility bug">
+          <p>
+            <Code>.spatial-ground</Code> is the third layer inside{" "}
+            <Code>SpatialBackdrop</Code>, which is <Code>fixed inset-0</Code>. That is
+            what makes a gradient safe at all.{" "}
+            <strong>
+              Anything that scrolls can carry a paragraph through a lighter region
+            </strong>
+            , and text that is legible only at certain scroll positions is worse than
+            text on a panel. A fixed layer cannot do that: a given pixel of the viewport
+            has one ground luminance for the whole session.
+          </p>
+        </UXNote>
+
+        <UXNote title="The feather is derived from the column, so the width and the margin are one decision">
+          <p>
+            The gradient is <Code>to right</Code> with four stops: transparent at the
+            viewport edge, full <Code>--ground-scrim</Code> at{" "}
+            <Code>calc(50% - var(--page-max-width) / 2)</Code> and again at{" "}
+            <Code>calc(50% + var(--page-max-width) / 2)</Code>, transparent at 100%. So it
+            is full strength across <em>exactly</em> the content column and feathers out
+            only in the margins, and the reveal <strong>self-tunes</strong>: a wider
+            screen gets a wider, softer band of photograph. Below the column&apos;s own
+            width the two middle stops clamp and the ground goes uniform, which is what a
+            phone should get.
+          </p>
+          <p>
+            This is why <Code>--page-max-width</Code> narrowed from 73.75rem to{" "}
+            <strong>62.5rem (1000px)</strong> in the same change. At 1440 that is roughly{" "}
+            <strong>220px of photograph each side instead of ~130</strong>, and it is
+            where the sense of content resting <em>in</em> something rather than{" "}
+            <em>inside</em> something comes from. The cost is real density: run-history&apos;s
+            seven-column table and the three-up model grid each lose 180px. Both were read
+            at 1280 and 1440 before this shipped rather than assumed to be fine — no
+            overflow, and the table still breathes.
+          </p>
+          <p>
+            A gradient rather than a mask, because a mask would need its own compositing
+            layer for no benefit.
+          </p>
+        </UXNote>
+
+        <DontNote>
+          <p>
+            <strong>Do not add a vertical gradient to the ground.</strong> It is the
+            obvious next move — fade the top, pool the light at the bottom — and it is the
+            one axis where this cannot work.
+          </p>
+          <p>
+            A lighter band on the vertical axis is a region body text will{" "}
+            <strong>scroll through</strong>. The horizontal axis has no such problem
+            because content is centred: its horizontal position never changes, so a
+            paragraph sits at exactly one place on the gradient forever. That asymmetry is
+            the whole reason the feather is horizontal-only, and it is a property of how
+            pages scroll rather than a stylistic preference.
+          </p>
+        </DontNote>
+
+        <UXNote title="The blur moved onto the photograph, and that is a distinction rather than an optimisation">
+          <p>
+            <Code>--backdrop-blur: 24px</Code> is applied as a <Code>filter</Code> on{" "}
+            <Code>.spatial-backdrop-image</Code>, not as a <Code>backdrop-filter</Code> on
+            anything above it. Three reasons, and the first one is structural:{" "}
+            <strong>
+              a backdrop-filter needs a boundary, and the boundary is the thing this
+              design removed
+            </strong>
+            . The blur used to live on a bordered panel; with the panel gone there is
+            nothing to bound it.
+          </p>
+          <p>
+            Second, it says the true thing. The photograph is far away, so it is out of
+            focus; the cards are near, so they are sharp. That is how depth actually
+            reads. Third, it is a static rasterisation rather than a per-frame compositor
+            pass over the whole viewport, so the entire blur budget goes back to chrome.
+          </p>
+          <p>
+            24px is bounded on both sides: below roughly 12px the backdrop&apos;s own
+            structure still reads as lines through the margins, and above roughly 40px it
+            is a flat wash and there was no reason to ship a photograph at all. The image
+            layer also carries <Code>scale-105</Code>, which is required rather than
+            decorative — <strong>a blur samples beyond its own box</strong>, so a blurred
+            layer at <Code>inset-0</Code> fades out at all four viewport edges and you
+            would watch the photograph go soft and pale into a border.
+          </p>
+        </UXNote>
+
+        <UXNote title="The default backdrop changed, and the ground's shape is the reason">
+          <p>
+            The default moved from <Code>backdrop-tunnel</Code> to{" "}
+            <Code>backdrop-bokeh</Code>. The ground darkens the <strong>centre</strong> —
+            that is where the content column is — so a backdrop whose light pools in the
+            middle has its interest eaten, and only its dark corners survive into the
+            margins where the reveal actually is. Tunnel is a radial vignette, i.e.
+            exactly that shape: it measured <strong>0.008 and 0.003</strong> in the left
+            and right margins. Effectively no photograph.
+          </p>
+          <p>
+            Bokeh&apos;s light is spread across the frame, and the same two samples read{" "}
+            <strong>0.042 and 0.028</strong> — one brighter than the ground it feathers
+            out of and one level with it, which is what makes the page read as space
+            rather than as a panel. A margin darker than the ground is not a margin; it is
+            a border drawn in black.
+          </p>
+          <p>
+            Bokeh had previously been rejected, and the objection was real: its cream, red
+            and green discs argued with the status palette. That applied when the
+            photograph was a full-bleed ground behind everything. It now appears only in
+            the margins, under the cap <em>and</em> a 24px defocus, at around 0.03
+            luminance — soft colour fields, not shapes.
+          </p>
+        </UXNote>
+      </DocSection>
+
+      <DocSection
+        title="The verification"
+        description="One measurement decides whether the complaint was addressed or merely softened, and it is not a screenshot."
+      >
+        <SpecTable
+          columns={["Measurement", "Value", "What it settles"]}
+          rows={[
+            [
+              "Largest single-step luminance change across the full viewport width",
+              "0.003",
+              "THERE IS NO EDGE ANYWHERE. A boundary is a step; sweeping the whole width and finding nothing above 0.003 is what says the sheet is gone rather than made subtler. This is the assertion to re-run if anyone touches the ground.",
+            ],
+            [
+              "Ground under the content column",
+              "0.0292 max",
+              "The darkness text is actually read against. The panel it replaced derived to 0.0388, so the ground came out slightly DARKER — bokeh's centre is darker than tunnel's, which is the safe direction: more contrast, not less.",
+            ],
+            [
+              "Photograph, left margin",
+              "0.042",
+              "Brighter than the ground it feathers out of. Under the previous backdrop this sample was 0.008.",
+            ],
+            [
+              "Photograph, right margin",
+              "0.028",
+              "Level with the ground. Under the previous backdrop, 0.003 — which is to say the margins were black and the reveal did not exist.",
+            ],
+          ]}
+        />
+
+        <p className="mb-6 max-w-measure text-ink-secondary">
+          The first row is the one that matters and it is worth saying why. The complaint
+          was never &ldquo;the page is too bright&rdquo; or &ldquo;the radius is
+          wrong&rdquo; — it was that the page had a <em>boundary</em>, and a boundary is
+          visible as a step in luminance. Softening a border, lowering a lift or widening
+          a radius all leave the step there and smaller.{" "}
+          <strong>0.003 across the full width is the absence of the step</strong>, not a
+          quieter version of it, and it is the only figure on this page that can
+          distinguish the two.
+        </p>
+      </DocSection>
+
+      <DocSection
         title="The backdrop cap"
         description="The one number the whole language rests on, and the reason legibility can be promised over an image the system has never seen."
       >
@@ -136,9 +325,9 @@ export default function SpatialDocs() {
           A photograph has no contrast guarantee. This language does not ask for one — it
           imposes one. <Code>--backdrop-cap</Code> is a black layer over the image at 0.40
           opacity, which pins the brightest pixel <em>any</em> image can produce to 0.22
-          luminance. The plane&apos;s alpha and the card&apos;s alpha above it are both
-          derived from that ceiling, and every ink value in the system was measured
-          against the result.
+          luminance. The ground&apos;s scrim and the card&apos;s alpha above it are both
+          solved against that ceiling, and every ink value in the system was measured
+          against the result. Nothing may come between the cap and the photograph.
         </p>
 
         <SpecTable
@@ -146,21 +335,40 @@ export default function SpatialDocs() {
           rows={[
             ["--backdrop-cap", "0.40", "Black over the photograph. Pins peak luminance to 0.22."],
             [
+              "--ground-scrim",
+              "oklch(0% 0 0 / 0.64)",
+              "THE GROUND. Black over the capped backdrop, feathered out horizontally to nothing at the viewport edge. Composites to 0.0383 against the panel's 0.0388, which is why nothing below it had to be re-derived.",
+            ],
+            [
+              "--backdrop-blur",
+              "24px",
+              "Depth of field, as a `filter` on the image layer rather than a `backdrop-filter` on anything above it. Below ~12px the backdrop's structure still reads as lines in the margins; above ~40px it is a flat wash.",
+            ],
+            [
+              "--page-max-width",
+              "62.5rem",
+              "1000px. The content column AND the ground's feather, because the gradient's middle stops are calc(50% -/+ half of this). One decision, one number.",
+            ],
+            [
               "--plane-fill",
               "oklch(18% 0.012 255 / 0.72)",
-              "The plane. Composites to 0.0388 over the capped peak. It was 0.65, from a version of this language in which nothing sat on the plane at all; the card tier is what pushed it down.",
+              "THE CHROME MATERIAL, not a page surface. The nav, the two session rails, the composer, the docs index, the session header, both auth panels and `.glass` itself. The name is kept because `.glass` and every overlay already read it and renaming is churn.",
             ],
-            ["--plane-blur", "40px", "One per plane. Everything inside it is forbidden from blurring."],
+            [
+              "--plane-blur",
+              "40px",
+              "One per chrome element, and chrome is the only thing licensed to spend it. Everything inside a blurred element is forbidden from blurring again.",
+            ],
             ["--plane-saturate", "165%", "Blur averages colour and therefore desaturates it; this puts it back."],
             [
               "--plane-edge",
               "var(--border-width-panel) solid var(--color-line)",
-              "The same 1px hairline a card gets. A translucent fill has no boundary of its own.",
+              "The same 1px hairline a card gets. A translucent fill has no boundary of its own — which is precisely why a page must not have one.",
             ],
             [
               "--plane-lift",
               "0 32px 72px -24px",
-              "The one place a large blur is still right on content: the plane genuinely floats clear of the photograph, so there is separation for a shadow to describe.",
+              "The one place a large blur is still right: chrome genuinely floats clear of the ground, so there is separation for a shadow to describe.",
             ],
             ["--backdrop-image", "url(...)", "Workspace override. Goes through the same cap, which is what makes it safe."],
           ]}
@@ -183,42 +391,50 @@ export default function SpatialDocs() {
             <Code>cap = 1 − encode(target_luminance)</Code>, which gives 0.40. The same
             correction applies to every composite in the ladder below —{" "}
             <Code>alpha × fg + (1−alpha) × bg</Code> is only valid on encoded values, per
-            channel.
+            channel, and <Code>--ground-scrim</Code> is no exception.
           </p>
         </DontNote>
       </DocSection>
 
       <DocSection
         title="The surface ladder"
-        description="Six values, and not one of them is a colour until you know what is behind it. All measured over the worst case — a peak-white pixel in the backdrop, which the shipped photograph genuinely contains."
+        description="Six values, and not one of them is a colour until you know what is behind it. Derived over the worst case — a peak-white pixel in the backdrop, which the shipped photograph genuinely contains."
       >
         <SpecTable
-          columns={["Tier", "Token", "Luminance", "Against the plane"]}
+          columns={["Tier", "Token", "Luminance", "Against the ground"]}
           rows={[
             ["backdrop, capped", "--backdrop-cap: 0.40", "0.3185", "The ceiling everything below is solved against."],
-            ["plane", "--plane-fill", "0.0388", "The ground. One per view."],
+            [
+              "ground",
+              "--ground-scrim",
+              "0.0383 (0.0292 sampled)",
+              "No tier above it and no edge around it. The derived figure is over a peak-white pixel; 0.0292 is the maximum the shipped photograph actually produces under the column.",
+            ],
             ["card", "--color-surface", "0.0602", "1.24×  (1.27× sampled)"],
             ["card edge", "--color-line", "0.0873", "1.55× — and see the padding-box note below for why it is not 1.25×."],
-            ["sunken", "--color-surface-sunken", "0.0318", "Below the plane, deliberately. The card is 1.35× it (1.34× sampled)."],
+            ["sunken", "--color-surface-sunken", "0.0318", "Below the ground, deliberately. The card is 1.35× it (1.34× sampled)."],
             ["overlay", "--color-surface-solid", "0.0114", "Not a tier. It occludes — see below."],
           ]}
         />
 
         <p className="mb-6 max-w-measure text-ink-secondary">
-          The multipliers are contrast ratios in the WCAG form, so they sit on the same
-          scale as every figure in the next section. <strong>Roughly 1.10× is where two
-          large adjacent fills stop reading as separate</strong>, which is the floor the
-          card tier had to clear. RAISED IS LIGHTER, INSET IS DARKER: that sentence is the
-          whole elevation system here, and it is why <Code>sunken</Code> sits below the
-          plane rather than above it. A groove and a card must never be confusable, and
-          lightness is the only channel doing that work.
+          <strong>Not one value in this table moved when the plane became the ground</strong>,
+          and that is the point of holding 0.0383 against 0.0388 rather than picking a
+          scrim that looked right. The multipliers are contrast ratios in the WCAG form,
+          so they sit on the same scale as every figure in the next section.{" "}
+          <strong>Roughly 1.10× is where two large adjacent fills stop reading as
+          separate</strong>, which is the floor the card tier had to clear. RAISED IS
+          LIGHTER, INSET IS DARKER: that sentence is the whole elevation system here, and
+          it is why <Code>sunken</Code> sits below the ground rather than above it. A
+          groove and a card must never be confusable, and lightness is the only channel
+          doing that work.
         </p>
 
         <UXNote title="The separations were sampled from rendered pixels, not recomputed">
           <p>
             Predicting a composite and then re-deriving it with the same formula proves
             nothing — it only proves the formula is consistent with itself. These two were
-            read off the running product: <strong>card against plane 1.27×</strong>{" "}
+            read off the running product: <strong>card against ground 1.27×</strong>{" "}
             against a predicted 1.24, and <strong>card against sunken 1.34×</strong>{" "}
             against a predicted 1.35. Agreement inside 0.03 is the check that the
             compositing model in <Code>styles/tokens.css</Code> describes what the GPU
@@ -226,15 +442,16 @@ export default function SpatialDocs() {
           </p>
           <p>
             1.27× is a real but quiet step, and that is the intent. A card here is a
-            surface, not a box.
+            surface, not a box — and with no page panel left, it is now the only edge on
+            the page.
           </p>
         </UXNote>
 
-        <UXNote title="The edge composites over the plane, not over the card">
+        <UXNote title="The edge composites over the ground, not over the card">
           <p>
             <Code>.panel-edge</Code> sets <Code>background-clip: padding-box</Code>, so a
             card&apos;s alpha fill does not paint underneath its own border. The 14% edge
-            therefore lands on the <em>plane</em>, not on the card, which is why it reads
+            therefore lands on the <em>ground</em>, not on the card, which is why it reads
             at 1.55× rather than the 1.25× you get by compositing it over the card&apos;s
             own fill. <strong>Remove the clip and the edge dilutes by a third</strong> —
             silently, since the border is still &ldquo;there&rdquo; in devtools at the
@@ -263,7 +480,7 @@ export default function SpatialDocs() {
 
       <DocSection
         title="Measured contrast"
-        description="Measured ON THE CARD, which is now the worst ground for most text. Every figure on the bare plane is exactly 1.24× higher — the same ink over a ground 1.24× darker — so the card is the only surface worth quoting."
+        description="Measured ON THE CARD, which is the worst ground for most text: the card is 1.24× lighter than the ground beneath it, so every figure on the bare ground is higher by exactly that. The card is the only surface worth quoting."
       >
         <SpecTable
           columns={["Token", "Value", "On the card", "Note"]}
@@ -274,7 +491,7 @@ export default function SpatialDocs() {
               "--color-ink-tertiary",
               "oklch(80% 0.012 255)",
               "5.10:1",
-              "THE BINDING CONSTRAINT. The plane's alpha and the card's alpha were both solved against this level rather than against --color-ink: it is where real information lives, and it is the first to fail as either tier lightens. Above roughly 0.08 on the card it does.",
+              "THE BINDING CONSTRAINT. The ground's scrim and the card's alpha were both solved against this level rather than against --color-ink: it is where real information lives, and it is the first to fail as either tier lightens. Above roughly 0.08 on the card it does.",
             ],
             [
               "--color-ink-muted",
@@ -289,10 +506,31 @@ export default function SpatialDocs() {
           ]}
         />
 
+        <UXNote title="What the shipped photograph actually delivers, sampled">
+          <p>
+            The column above is the <strong>promise</strong>: every value derived over a
+            peak-white backdrop pixel, which is the worst case the cap permits. Sampled
+            from rendered pixels instead — over the shipped bokeh frame, where the ground
+            sits at or below 0.0292 rather than at the worst case&apos;s 0.0383 — the same
+            eight levels on a card read{" "}
+            <strong>
+              ink 12.1 · secondary 8.2 · tertiary 6.0 · muted 2.7 · accent 6.3 · success
+              8.1 · warning 9.5 · danger 8.1
+            </strong>
+            .
+          </p>
+          <p>
+            <strong>Every real-text level clears 4.5:1 in both columns</strong>, muted
+            excepted and exempt. Quote the derived column, because it is the one that
+            holds for a workspace that supplies its own photograph; the sampled column is
+            only evidence that the arithmetic is pessimistic in the right direction.
+          </p>
+        </UXNote>
+
         <UXNote title="Media is the one surface with no cap">
           <p>
             The cap applies to the backdrop, not to content. A photograph inside a model
-            card is real output sitting <em>above</em> the plane and it can contain a
+            card is real output sitting <em>above</em> the ground and it can contain a
             blown-out white pixel — the models grid does. The card tier is no help there:
             a 7% white alpha over a blown-out pixel is not a surface, it is the pixel. So{" "}
             <Code>--color-chip-over-media</Code> and{" "}
@@ -347,20 +585,21 @@ export default function SpatialDocs() {
       </DocSection>
 
       <DocSection
-        title="Overlays occlude; they are not a second plane"
+        title="Overlays occlude; they are not another tier of glass"
         description="Dialog, popover, dropdown-menu, select and tooltip all paint --color-surface-solid at 0.94, and none of them carries a backdrop-filter."
       >
         <p className="mb-6 max-w-measure text-ink-secondary">
           There are two reasons and the second one settles it. First, rule 1 forbids
-          stacked translucency, and an overlay over the plane is exactly that. Second —
-          and this is the part worth remembering —{" "}
-          <strong>blurring an already-blurred field buys nothing</strong>. The plane is
-          smooth at 40px, so a second pass over it produces a visually identical result at
-          the cost of a full compositor pass. Rule 2 was written about performance; here
-          it turns out to be an argument about appearance as well.
+          stacked translucency, and a translucent overlay over translucent chrome is
+          exactly that. Second — and this is the part worth remembering —{" "}
+          <strong>blurring an already-blurred field buys nothing</strong>. Everything
+          behind an overlay is either the backdrop, which was rasterised at 24px before it
+          ever reached the compositor, or product content, which is the thing an overlay
+          exists to <em>hide</em> rather than to soften. Rule 2 was written about
+          performance; here it turns out to be an argument about appearance as well.
         </p>
 
-        <UXNote title="What an overlay actually needs is the guarantee the plane has">
+        <UXNote title="What an overlay actually needs is the guarantee the ground has">
           <p>
             The whole ladder is legible because <Code>--backdrop-cap</Code> imposes a
             worst case behind it. <strong>Nothing imposes anything behind a dropdown.</strong>{" "}
@@ -389,7 +628,7 @@ export default function SpatialDocs() {
             [
               "bg-ink/35 — the dialog scrim",
               "`ink` is near-white here, so every modal painted a NEAR-WHITE 35% wash over the whole viewport. A scrim whose job is to push the page back was pulling it forward.",
-              "--color-scrim-dialog, black at 0.55. Its backdrop-blur-[2px] went too: a full-viewport compositor pass blurring a field the plane has already blurred at 40px, which is the most expensive no-op available.",
+              "--color-scrim-dialog, black at 0.55. Its backdrop-blur-[2px] went too: a full-viewport compositor pass every frame, over a field whose only high-frequency detail is a photograph already defocused at 24px. The most expensive no-op available.",
             ],
             [
               "bg-danger text-white — the danger Button",
@@ -398,7 +637,7 @@ export default function SpatialDocs() {
             ],
             [
               "bg-ink-muted — a disabled primary Button",
-              "Luminance 0.2386 — brighter than the card AND brighter than the plane, so a disabled Run button was the single brightest object on the page.",
+              "Luminance 0.2386 — brighter than the card AND brighter than the ground, so a disabled Run button was the single brightest object on the page.",
               "The card tier with a muted label. Flat, quiet, and unmistakably not pressable.",
             ],
           ]}
@@ -454,57 +693,61 @@ export default function SpatialDocs() {
       </DocSection>
 
       <DocSection
-        title="Opting a surface in"
-        description="Two selectors cover the whole product. Neither is a class you write on a component."
+        title="There is nothing to opt into"
+        description="The whole data-plane attribute system is deleted. What replaced it is the ground, a layout the routes already carried, and a short list of things that genuinely float."
       >
         <SpecTable
-          columns={["Hook", "Where it is set", "What it covers"]}
+          columns={["Was", "Now", "Why"]}
           rows={[
             [
-              "[data-plane-scope] > main",
-              "app/(app)/layout.tsx, once",
-              "All twelve product routes, without editing any of them.",
+              "[data-plane-scope] > main — set once in app/(app)/layout.tsx",
+              "Nothing. The twelve product routes use the layout they already had: `mx-auto max-w-(--page-max-width) px-6 pb-24 lg:px-8`.",
+              "Content is not ON anything any more; it is in the space, and the space is dark enough to read against. A scope marker only existed to hand a surface to elements that turned out not to want one.",
             ],
             [
-              "data-plane",
-              "The docs content column",
-              "The default: fill, blur, edge, radius, lift.",
+              "data-plane — the docs content column",
+              "Nothing. The column is bare against the ground.",
+              "The default variant gave it a fill, a blur, an edge, a radius and a lift. All five together are what made a document read as an object.",
             ],
             [
-              'data-plane="bar"',
-              "The session header",
-              "Edge-to-edge: no radius, no lift, a bottom hairline instead. It keeps the fill, the blur and the bevel, which are the parts that make it the same material.",
+              'data-plane="bar" — the session header',
+              "`.glass`, with rounded-none, no side or top border, and a bottom hairline.",
+              "A CORRECTION, not a workaround. It is persistent navigation you jump around in, which is exactly what glass is licensed for. It keeps the fill, the blur and the bevel — the parts that make it the same material as the nav above it.",
             ],
             [
-              'data-plane="rail"',
-              "The docs index",
-              "Full-height against the viewport edge: the two corners that meet it lose their radius, because a rounded corner needs a gap behind it to read as a corner.",
+              'data-plane="rail" — the docs index',
+              "`.glass`, sticky, at radius-2xl.",
+              "Same argument, plus one only the ground can make: the index sits near the viewport edge, exactly where the ground is feathering out into photograph, so it cannot borrow the ground's contrast and needs its own material.",
             ],
             [
-              'data-plane="padded"',
-              "The 404 block, the session canvas column",
-              "For an element that had no padding of its own because it was never a surface.",
+              'data-plane="padded" — the 404 block, the session canvas column',
+              "Nothing.",
+              "It existed for elements that had no padding of their own because they had never been surfaces. With no page surface, the question does not arise.",
             ],
             [
               "data-media-frame",
-              "ProceduralCover, the two session media frames",
-              "An inset hairline, so a photograph reads as set into the card rather than pasted onto it.",
+              "Unchanged.",
+              "An inset hairline, so a photograph reads as set into the card rather than pasted onto it. A card-level concern that the ground never touched.",
             ],
           ]}
         />
 
-        <UXNote title="Why not just target `main`">
+        <UXNote title="The two shells that made the scope marker necessary are the two the ground fixed for free">
           <p>
-            Because two of the four shells would break. /docs renders its main as a flex
-            child beside a persistent index, and the 404 renders it as a{" "}
-            <Code>min-h-dvh</Code> centring grid — a plane on either would be a
-            full-viewport panel with the content floating in the middle of it. The scope
-            marker is what keeps one rule from reaching them.
+            A page surface could never simply target <Code>main</Code>, because two of the
+            four shells would break: /docs renders its main as a flex child beside a
+            persistent index, and the 404 renders it as a <Code>min-h-dvh</Code> centring
+            grid — a plane on either would have been a full-viewport panel with the
+            content floating in the middle of it. That is what the scope marker was for.
           </p>
           <p>
-            Both auth pages needed nothing at all. They already render a{" "}
-            <Code>GlassPanel</Code>, and <Code>.glass</Code> and the plane are the same
-            material by construction, so the login card is a plane without being touched.
+            <strong>
+              The ground fixed both by not being an element either of them contains.
+            </strong>{" "}
+            It is a fixed layer behind everything, so it does not care what shape a{" "}
+            <Code>main</Code> is. Both auth pages needed nothing before and need nothing
+            now: they render a <Code>GlassPanel</Code>, and <Code>.glass</Code> is the
+            chrome material, which is what an auth card always was.
           </p>
         </UXNote>
 
@@ -526,7 +769,7 @@ export default function SpatialDocs() {
           </p>
           <p>
             So the guard was deleted, because it never fired. The invariant is still
-            real — <strong>one raised tier per plane</strong> — and it is what keeps
+            real — <strong>one raised tier on the ground</strong> — and it is what keeps
             elevation from inverting if someone builds the case. But nothing in the
             product currently tests it, and a rule that fires nowhere is a rule nobody can
             verify.
@@ -543,12 +786,12 @@ export default function SpatialDocs() {
           rows={[
             [
               "prefers-contrast: more",
-              "--backdrop-cap goes to 1, so the photograph is a black field and [data-spatial-backdrop] is display:none. The plane goes opaque at 22% L with --color-border-contrast as its edge, --plane-blur goes to 0, the card tier goes opaque at 28% L, lines strengthen, and every ink level moves FURTHER from its ground.",
+              "--backdrop-cap goes to 1 and [data-spatial-backdrop] is display:none, which takes the photograph, the cap AND the ground together — they are one element — leaving --color-canvas as the page ground at 0.0139: opaque, and darker than the 0.0383 it replaces, so every figure on this page improves rather than degrades. Chrome goes opaque: `.glass` paints --color-surface-solid at 18% L with --color-border-contrast as its edge, --plane-blur goes to 0 and the rule sets backdrop-filter: none besides. The card tier goes opaque at 28% L, lines strengthen, and every ink level moves FURTHER from its ground.",
               "The ink tokens are what make this language dark, and they are not what the query switches off. Handing it light surfaces would leave near-white ink on near-white cards.",
             ],
             [
               "prefers-reduced-transparency: reduce",
-              "Same destination, different reason: the plane goes opaque at 24% L with a real --color-line border, the card tier at 28% L, the photograph is neither shown nor downloaded, and the shadow tokens stop being bevels and become blurs again.",
+              "Same destination, different reason: `.glass` goes opaque and unblurred on the same --color-surface-solid, the card tier goes opaque at 28% L, the photograph is neither shown nor downloaded, and the shadow tokens stop being bevels and become blurs again.",
               "Elevation has to come from somewhere. With no translucency doing the separating, a blur is the only mechanism left — which is why lifting rule 3 here is correct rather than inconsistent.",
             ],
           ]}
@@ -598,19 +841,21 @@ export default function SpatialDocs() {
               Low-contrast light-on-glass is tiring in a tool people sit in for hours.
             </strong>{" "}
             The kit&apos;s original boundary — glass for chrome, opaque for content — was
-            there for that reason, and this language inverts it. When this was one theme
-            of three, a user who found it tiring could switch. There is no switch now:
-            this is the product, and the only other renderings are the two accessibility
-            modes, which are opaque dark rather than a light theme.
+            there for that reason. Half of it came back with the ground: chrome is once
+            again the only thing in the product made of glass. The other half did not.
+            Content is still light ink on a dark, atmospheric ground, and when this was one
+            theme of three a user who found that tiring could switch. There is no switch
+            now: this is the product, and the only other renderings are the two
+            accessibility modes, which are opaque dark rather than a light theme.
           </p>
           <p>
             What the language does not do is pretend the cost away. The cap exists
             precisely because &ldquo;usually legible over a photograph&rdquo; is not a
-            promise a design system can make, and every number on this page is a worst
-            case rather than a typical one: measured over a peak-white pixel the shipped
-            image actually contains, on the card rather than on the plane, and sampled
-            from rendered pixels where it could be. If the objection is ever going to win,
-            it should win against the real numbers.
+            promise a design system can make, and every quoted number on this page is a
+            worst case rather than a typical one: derived over a peak-white pixel the
+            shipped image actually contains, on the card rather than on the ground, and
+            checked against rendered pixels wherever it could be. If the objection is ever
+            going to win, it should win against the real numbers.
           </p>
         </DontNote>
       </DocSection>

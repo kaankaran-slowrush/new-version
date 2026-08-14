@@ -77,7 +77,7 @@
         oklch(0% 0 0 / var(--backdrop-cap)),
         oklch(0% 0 0 / var(--backdrop-cap))
       ),
-      var(--backdrop-image, url("/artifacts/backdrop-tunnel.jpg"));
+      var(--backdrop-image);
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
@@ -262,7 +262,7 @@
    not an override.
 
    Colour is deliberately NOT set here. It varies with what the eyebrow sits on:
-   `ink-secondary` directly on the plane, `ink-tertiary` inside a card. The two
+   `ink-secondary` directly on the ground, `ink-tertiary` inside a card. The two
    grounds are 1.24x apart, which is exactly enough that one ink level cannot be
    right on both — an eyebrow is small, uppercase and tracked, so it is the first
    thing to fail when its ground moves.
@@ -570,22 +570,26 @@
    @layer components like any other definition and a call site can beat them
    normally.
 
-   TWO SELECTORS COVER THE PRODUCT, and neither is a class you write on a component:
+   THERE IS NO PAGE SURFACE TO OPT INTO, and that is the second thing this file
+   lost on purpose. A `data-plane` attribute system used to exist — a scope marker
+   on the app shell plus three variants for the shells whose `main` was the wrong
+   element. Every one of those rules gave a page a fill, a border, a radius and a
+   lift, and the sum of them was a sheet of paper with the photograph as its mat.
 
-     [data-plane-scope] > main   set once in app/(app)/layout.tsx, which is what
-                                 covers all twelve product routes without editing
-                                 any of them.
-     [data-plane]                the four shells that are not product routes and
-                                 need the plane somewhere other than on `main`.
+   The ground below replaced all of it. Content needs no opt-in because it is not
+   ON anything: it is in the space, and the space is dark enough to read against.
+   The only things that still declare a surface are the ones that genuinely float —
+   `.glass` for chrome, `.panel-edge` for cards, `--color-surface-solid` for
+   overlays.
 
-   `main` ALONE WOULD BE WRONG. /docs renders its main as a flex child beside a
-   persistent index, and the 404 renders it as a `min-h-dvh` centring grid — a
-   plane on either would be a full-viewport panel with the content floating in the
-   middle of it. The scope marker is what keeps one rule from reaching them.
+   TWO ELEMENTS MOVED SIDES in the process, and the move is a correction rather than
+   a workaround: the /docs index and the session header used to be planes and are
+   now `.glass`. Both are persistent navigation you jump around in, which is exactly
+   what glass is licensed for — and the docs index in particular sits near the
+   viewport edge, where the ground is feathering out, so it needs its own material
+   rather than the ground's.
 
-   AUTH NEEDS NOTHING. Both auth pages already render a GlassPanel, and `.glass`
-   and the plane are the same material by construction, so the login card is a
-   plane without being touched.
+   AUTH ALREADY NEEDED NOTHING and still does: both pages render a GlassPanel.
    ============================================================================= */
 
 @layer components {
@@ -593,82 +597,50 @@
      any url() and it goes through the same cap, which is the only reason a
      customer-supplied photograph can be allowed at all. */
   .spatial-backdrop-image {
-    background-image: var(--backdrop-image, url("/artifacts/backdrop-tunnel.jpg"));
+    background-image: var(--backdrop-image);
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
+    /* Depth of field. See the note in spatial-backdrop.tsx for why this is a
+       `filter` on the image rather than a `backdrop-filter` on the content. */
+    filter: blur(var(--backdrop-blur));
   }
 
-  [data-plane-scope] > main,
-  [data-plane] {
-    background-color: var(--plane-fill);
-    /* NO HAND-WRITTEN `-webkit-` TWIN, and that is load-bearing rather than tidy.
-       This rule used to carry both, standard first and prefixed second — and
-       Lightning CSS treats them as one property and keeps the LAST one, so the
-       standard declaration was silently dropped from the build. Chrome does not
-       honour the bare `-webkit-` alias here, so the result was that NOTHING in the
-       product was ever actually blurred: not the plane, not `.glass`, not the nav.
-       The frosted panel was a translucent fill and nothing more.
+  /* THE GROUND. Full strength across the content column, feathered to nothing at
+     the viewport edge, so the photograph survives in the margins and the darkness
+     has no boundary anywhere. The stops are derived from --page-max-width, which
+     is why changing the column width also moves the reveal — they are the same
+     decision and should not be two numbers.
 
-       It cost nothing to find because it fails silently — the page still looks
-       plausible. It was caught by counting elements with a live `backdrop-filter`
-       and getting zero. Lightning CSS adds the prefix itself from the build
-       targets; writing it by hand is what broke it. */
-    backdrop-filter: blur(var(--plane-blur)) saturate(var(--plane-saturate));
-    border: var(--plane-edge);
-    border-radius: var(--plane-radius);
-    /* The fill is an alpha, so it would otherwise paint under its own alpha border
-       and dilute the edge — the same reason .panel-edge needs this. */
-    background-clip: padding-box;
-    /* The specular top bevel, identical to .glass's and to --shadow-sm's. It is
-       most of why a translucent panel reads as a pane of something rather than as
-       reduced opacity. */
-    box-shadow:
-      inset 0 1px 0 oklch(100% 0 0 / 0.14),
-      var(--plane-lift);
+     `to right` with four stops rather than a mask: a mask would need its own
+     compositing layer for no benefit, and the gradient is doing the whole job.
+     The middle two stops are `calc(50% -/+ half the column)`, which clamp
+     naturally below that width and give a uniform ground on narrow screens. */
+  .spatial-ground {
+    background-image: linear-gradient(
+      to right,
+      transparent 0,
+      var(--ground-scrim) calc(50% - var(--page-max-width) / 2),
+      var(--ground-scrim) calc(50% + var(--page-max-width) / 2),
+      transparent 100%
+    );
   }
 
-  /* `bar` — the plane material on an edge-to-edge element. The session header
-     spans the viewport and carries a bottom hairline, so a radius would leave four
-     gaps at the corners and a lift would cast a shadow along a seam with no gap to
-     cast into. It keeps the fill, the blur and the bevel, which are the parts that
-     make it the same material as everything else. */
-  [data-plane="bar"] {
-    border: 0;
-    border-bottom: 1px solid var(--color-line-inner);
-    border-radius: 0;
-    box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.1);
-  }
+  /* NOTHING HERE PAINTS A PAGE ANY MORE. This is where the plane rules were:
+     `[data-plane-scope] > main`, `[data-plane]`, and the `bar`/`rail`/`padded`
+     variants. They gave the page a fill, a blur, a border, a radius and a lift —
+     i.e. they made it an object, which is why it read as a sheet of paper with the
+     photograph as the mat around it.
 
-  /* `rail` — a full-height plane against the viewport edge. Same idea as `bar` in
-     the other axis: the two corners that meet the edge lose their radius, because
-     a rounded corner needs a gap behind it to read as a corner rather than as a
-     chip out of the panel. */
-  [data-plane="rail"] {
-    border-inline-start: 0;
-    border-start-start-radius: 0;
-    border-end-start-radius: 0;
-    padding-inline: 1.25rem;
-  }
+     WHAT REPLACED THEM: `.spatial-ground` above, which is the same darkness with no
+     boundary, and `.glass` for the two elements that turned out to be chrome rather
+     than content (the docs index and the session header). The twelve product routes
+     now use the layout they already carried — `mx-auto max-w-(--page-max-width)
+     px-6 pb-24 lg:px-8` — which is what CardRail's `-mx-6 … px-6` bleed was written
+     against in the first place.
 
-  /* `padded` — for an opt-in site whose element has no padding of its own, because
-     it was never a surface before. */
-  [data-plane="padded"] {
-    padding: 2rem;
-  }
-
-  /* The product routes carry `px-6 pb-24`, written for a page that bleeds to the
-     viewport. As a panel those are wrong in both directions: 96px of bottom padding
-     inside a bordered plane reads as a rendering fault, and there is no top padding
-     at all because the shell's `pt-24` sits outside the plane. */
-  [data-plane-scope] > main {
-    padding-block: 2.5rem;
-    /* Keeps the utility's `margin-inline: auto` and `max-width` doing their jobs
-       while guaranteeing the plane never touches the viewport edge at any width.
-       --nav-inset is the gap the floating nav already uses, so the plane and the
-       nav share one margin rather than each having their own. */
-    width: calc(100% - 2 * var(--nav-inset));
-  }
+     If you are looking for where to put a page-level surface: don't. That is the
+     bug this removed. */
 
   /* MEDIA DRAWS ITS OWN EDGE. Everywhere else a photograph is bounded by the Card
      it sits in; here the card's own fill is a 7% alpha, which is not enough to
@@ -735,13 +707,12 @@
     box-shadow: none;
     border: 1px solid var(--color-border-contrast);
   }
-  /* The plane stops being a plane, and the photograph is not rendered at all — a
-     backdrop nobody can see through is a picture behind an opaque panel, costing a
-     full-viewport download to be invisible. */
-  [data-plane-scope] > main,
-  [data-plane] {
-    backdrop-filter: none;
-  }
+  /* THE WHOLE BACKDROP GOES — photograph, cap and ground together, since they are
+     one element. That leaves `--color-canvas` as the page ground, which is opaque
+     and darker than the translucent ground it replaces (0.0139 against 0.0383), so
+     every contrast figure improves rather than degrades. A backdrop nobody can see
+     through is a picture behind an opaque panel, costing a full-viewport download
+     to be invisible. */
   [data-spatial-backdrop] {
     display: none;
   }
@@ -767,14 +738,10 @@
     background-image: none !important;
     display: none;
   }
-  /* blur(0px) still promotes a compositing layer for no benefit; take the filter
-     off entirely rather than setting it to a no-op. */
-  [data-plane-scope] > main,
-  [data-plane] {
-    backdrop-filter: none;
-  }
   /* Hidden rather than conditionally rendered, which also cancels the fetch: a
-     browser does not download the background of a `display: none` element. */
+     browser does not download the background of a `display: none` element. Taking
+     the backdrop takes the ground with it — they are one element — and
+     `--color-canvas` becomes the page ground, opaque and darker. */
   [data-spatial-backdrop] {
     display: none;
   }

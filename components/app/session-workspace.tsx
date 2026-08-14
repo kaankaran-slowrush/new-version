@@ -41,11 +41,12 @@ import type { SessionSummary, Turn, Visibility } from "@/lib/mock/sessions";
      artifact scrolls away the moment you reply to it; here it holds the center and
      history is one click along the rail.
 
-   • THE HEADER IS OPAQUE ON PURPOSE. Everything else floating in this view is
-     glass (rails, composer). The header is the fixed orientation anchor — where
-     you are, what agent, who can see it, how to get out. The contrast between a
-     stable header and floating panels is what makes the layering legible; if
-     everything floats, nothing reads as elevated.
+   • THE HEADER IS GLASS, LIKE THE RAILS AND THE COMPOSER, and this note used to
+     say the opposite — that it was opaque on purpose, so that a stable header
+     against floating panels made the layering legible. That argument was written
+     when the CONTENT was opaque too. Now content sits directly in the space, so
+     the honest split is chrome-versus-space rather than stable-versus-floating:
+     everything that frames the session floats, and the session itself does not.
 
    • TWO EXITS, MATCHED TO FREQUENCY. "← Sessions" on the rail (frequent, back to
      the hub) and the wordmark in the header (occasional, all the way home). This
@@ -122,18 +123,21 @@ export function SessionWorkspace({
        their own overflow, so the composer stays put. */
     <div className="flex h-dvh flex-col overflow-hidden">
       <header
-        /* `bar` — the plane material with no radius and no lift, because this is a
-           full-width edge-to-edge header rather than a floating panel. Without it
-           the title and the agent name would sit directly on the photograph at
-           about 3.7:1. The focus shell has no `[data-plane-scope]` around it — it
-           deliberately sits outside the (app) route group — so it opts in by name.
+        /* GLASS, because this header is chrome: it is the session's fixed
+           orientation anchor and its two exits, not part of the conversation. It
+           used to be a page plane with a `bar` variant that stripped the radius and
+           the lift; the plane is gone and the honest classification is the one it
+           always had.
 
-           NO `bg-surface` HERE, and it used to carry one. That token is the CARD
-           tier now, so painting it on top of the plane material would put the
-           header a step ABOVE the plane it is supposed to be made of — a seam
-           where the two meet, for no reason. The plane rule is the whole fill. */
-        data-plane="bar"
-        className="z-(--z-sticky) flex shrink-0 items-center gap-3 border-b border-line-inner px-5 py-3"
+           NO RADIUS, and `.glass` would normally bring one — but this spans the
+           viewport edge to edge, where a rounded corner has no gap behind it to
+           read as a corner rather than as a chip out of the bar. The bottom hairline
+           does the separating instead.
+
+           NO `bg-surface` EITHER, and it used to carry one. That token is the CARD
+           tier now, so painting it here would put the header a step above the glass
+           it is made of — a seam where the two meet, for nothing. */
+        className="glass z-(--z-sticky) flex shrink-0 items-center gap-3 rounded-none border-x-0 border-t-0 px-5 py-3"
       >
         <Link
           href="/"
@@ -217,17 +221,13 @@ export function SessionWorkspace({
 
         <div className="absolute inset-0 z-(--z-base) flex flex-col">
           <div className="flex min-h-0 flex-1 justify-center overflow-y-auto px-6 pt-8 pb-4">
-            {/* THE CONVERSATION SITS ON A PLANE OF ITS OWN under the spatial theme.
-                Two things break without it, and the second is the worse one: turn
-                text lands on the bare photograph, and every `bg-surface-sunken`
-                inside — the media frames, the footer trays — resolves to a 28%
-                black that is meant to be a groove cut INTO a plane. With no plane
-                under it that black is simply translucent, so a still-rendering
-                video frame becomes a window onto the wallpaper.
-
-                `padded` because this element never had padding of its own; it was
-                a bare measure-limiting wrapper until it became a surface. */}
-            <div data-plane="padded" className="w-full max-w-(--canvas-max-width)">
+            {/* A bare measure-limiting wrapper, which is all it ever needed to be.
+                It briefly carried a plane, because with no ground the turn text
+                landed on the photograph and every `bg-surface-sunken` inside — the
+                media frames, the footer trays — became a translucent black over the
+                wallpaper rather than a groove cut into something. The ground solves
+                both, everywhere, without this having to be a surface. */}
+            <div className="w-full max-w-(--canvas-max-width)">
               {activeTurn ? (
                 <SessionCanvas turn={activeTurn} />
               ) : (

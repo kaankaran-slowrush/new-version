@@ -8,15 +8,17 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       {/* Docs gets a persistent index because it is a reference you jump around
           in. The product deliberately has no sidebar — different job. */}
       <aside
-        /* `rail` — the plane material, squared off on the side that meets the
-           viewport edge. Without it this index sits on the bare photograph, and it
-           is the one region guaranteed to be over the brightest part of it: the
-           backdrop is a vignette, so its outer wall is its lightest area and the
-           sidebar is pinned to the outer wall. Group eyebrows are `ink-tertiary`,
-           which measures about 3.7:1 there — below the floor. On the plane it is
-           5.5:1. */
-        data-plane="rail"
-        className="sticky top-0 z-(--z-sticky) hidden h-dvh w-56 shrink-0 overflow-y-auto py-10 lg:block"
+        /* GLASS, because this index is chrome rather than content — a persistent
+           thing you jump around in, which is exactly what glass is licensed for.
+           It reads as floating over the space, the same as the nav and the session
+           rails, instead of being part of the page it indexes.
+
+           It is also the one region that NEEDS its own material. The docs container
+           is wider than the product column, so this sidebar sits where the ground is
+           feathering out toward the photograph; `ink-tertiary` group labels would
+           land near 3.7:1 there. Everything else on the page is inside the ground's
+           full-strength zone. */
+        className="glass sticky top-4 z-(--z-sticky) hidden h-[calc(100dvh-2rem)] w-56 shrink-0 overflow-y-auto rounded-2xl px-5 py-8 lg:block"
       >
         <Link href="/" className="mb-8 inline-flex items-baseline font-mono text-base">
           model<span className="font-semibold text-accent-ink">.store</span>
@@ -43,14 +45,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         </nav>
       </aside>
 
-      <main
-        /* The docs column is a flex child beside a persistent index, so the
-           spatial theme's `[data-plane-scope] > main` rule deliberately does not
-           reach it — /docs sits outside the (app) route group. It still needs to be
-           a plane, so it opts in by name. */
-        data-plane
-        className="min-w-0 flex-1 py-10 lg:py-16"
-      >
+      <main className="min-w-0 flex-1 py-10 lg:py-16">
         <div className="max-w-[52rem]">{children}</div>
       </main>
     </div>
